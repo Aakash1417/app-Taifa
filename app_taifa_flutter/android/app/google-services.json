@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "95581424221",
+    "project_id": "app-taifa",
+    "storage_bucket": "app-taifa.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:95581424221:android:d997adb21bceae02af5bb4",
+        "android_client_info": {
+          "package_name": "com.example.app_taifa_flutter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "95581424221-knrsei9i3lkm0ahpvd3rkqijsp1s67ad.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQac9S7G9Le9_sNPnywuYdFm_iPamh3Ug"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "95581424221-knrsei9i3lkm0ahpvd3rkqijsp1s67ad.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
