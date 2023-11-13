@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "95581424221",
+    "firebase_url": "https://app-taifa-default-rtdb.firebaseio.com",
     "project_id": "app-taifa",
     "storage_bucket": "app-taifa.appspot.com"
   },

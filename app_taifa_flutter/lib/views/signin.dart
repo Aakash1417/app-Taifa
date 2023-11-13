@@ -1,13 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'home_page.dart';
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({Key? key}) : super(key: key);
+  const SignInScreen({super.key});
 
   @override
   State<SignInScreen> createState() => SignInScreenState();
 }
 
 class SignInScreenState extends State<SignInScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn googleSignIn = GoogleSignIn();
+
+  Future<void> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleSignInAccount =
+          await googleSignIn.signIn();
+      if (googleSignInAccount != null) {
+        final GoogleSignInAuthentication googleSignInAuthentication =
+            await googleSignInAccount.authentication;
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleSignInAuthentication.accessToken,
+          idToken: googleSignInAuthentication.idToken,
+        );
+
+        final UserCredential authResult =
+            await _auth.signInWithCredential(credential);
+        final User? user = authResult.user;
+
+        if (user != null && user.email!.endsWith('@taifaengineering.com')) {
+          if (!mounted) return; // Check if the widget is still in the tree
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomePage()),
+          );
+        } else {
+          _handleInvalidDomain();
+        }
+      }
+    } catch (e) {
+      // Handle errors here
+    }
+  }
+
+  void _handleInvalidDomain() {
+    // Logic for handling invalid domain
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,9 +85,7 @@ class SignInScreenState extends State<SignInScreen> {
             ),
             const SizedBox(height: 20),
             TextButton(
-              onPressed: () {
-                // Add your single sign-on logic here
-              },
+              onPressed: signInWithGoogle,
               child: const Text('Single Sign-On'),
             ),
           ],
