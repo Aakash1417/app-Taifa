@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -7,10 +10,19 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home Page'),
+        title: const Text('Main Page'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              // The user will be automatically redirected to the SignInScreen
+            },
+          ),
+        ],
       ),
       body: const Center(
-        child: Text('Welcome to the Home Page!'),
+        child: Text('Welcome to the Main Page!'),
       ),
     );
   }
