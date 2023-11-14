@@ -34,19 +34,50 @@ class SignInScreenState extends State<SignInScreen> {
           if (!mounted) return; // Check if the widget is still in the tree
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
+            MaterialPageRoute(
+                builder: (context) =>
+                    HomePage(onLogout: () => _navigateToSignIn(context))),
           );
         } else {
-          _handleInvalidDomain();
+          await _auth.signOut(); // Sign out from Firebase
+          await googleSignIn.signOut(); // Sign out from Google
+
+          if (!mounted) return;
+          _showInvalidDomainDialog(); // Show error dialog
         }
       }
     } catch (e) {
-      // Handle errors here
+      // Handle other errors here
     }
+  }
+
+  void _navigateToSignIn(BuildContext context) {
+    Navigator.of(context).pushReplacement(MaterialPageRoute(
+      builder: (context) => SignInScreen(),
+    ));
+  }
+
+  void _showInvalidDomainDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Invalid Domain'),
+        content: Text('You must sign in with an @mastereng.com email address.'),
+        actions: [
+          TextButton(
+            child: Text('OK'),
+            onPressed: () {
+              Navigator.of(context).pop(); // Dismiss the dialog
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleInvalidDomain() {
     // Logic for handling invalid domain
+    print("ok");
   }
 
   @override

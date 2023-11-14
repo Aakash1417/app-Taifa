@@ -28,19 +28,22 @@ class MyApp extends StatelessWidget {
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.active) {
-            // Check if the user is logged in
-            if (snapshot.hasData) {
-              return const HomePage(); // User is logged in, show main page
-            }
-            return const SignInScreen(); // User is not logged in, show login screen
+          if (snapshot.hasData) {
+            return HomePage(
+                onLogout: () =>
+                    _navigateToSignIn(context)); // User is logged in
+          } else {
+            return SignInScreen(); // User is not logged in
           }
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()), // Loading state
-          );
         },
       ),
     );
+  }
+
+  void _navigateToSignIn(BuildContext context) {
+    Navigator.of(context).pushReplacement(MaterialPageRoute(
+      builder: (context) => SignInScreen(),
+    ));
   }
 }
 //

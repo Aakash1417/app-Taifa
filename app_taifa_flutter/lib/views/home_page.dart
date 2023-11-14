@@ -1,10 +1,14 @@
-import 'package:flutter/material.dart';
-
+import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final VoidCallback onLogout;
+
+  // Modify the constructor to require the onLogout parameter
+  HomePage({super.key, required this.onLogout});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +20,8 @@ class HomePage extends StatelessWidget {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
-              // The user will be automatically redirected to the SignInScreen
+              await _googleSignIn.signOut();
+              onLogout();
             },
           ),
         ],
