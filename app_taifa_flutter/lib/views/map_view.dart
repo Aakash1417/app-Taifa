@@ -98,10 +98,15 @@ class _MapsPageState extends State<MapsPage> {
                   decoration: const InputDecoration(labelText: 'Pin Name'),
                 ),
                 const SizedBox(height: 16.0),
-                DropdownButton<String>(
+                DropdownButtonFormField<String>(
                   value: _selectedCategory,
                   hint: Text(_selectedCategory ?? "Select Category"),
                   onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedCategory = newValue;
+                    });
+                  },
+                  onSaved: (String? newValue) {
                     setState(() {
                       _selectedCategory = newValue;
                     });
@@ -193,6 +198,9 @@ class _MapsPageState extends State<MapsPage> {
             ElevatedButton(
               child: const Text('Add Category'),
               onPressed: () {
+                _categories.add(Category(
+                    name: _categoryNameController.text,
+                    color: Color(_categoryColor.value)));
                 FirebaseFirestore.instance.collection('categories').add({
                   'name': _categoryNameController.text,
                   'color': _categoryColor.value,
@@ -256,7 +264,13 @@ class _MapsPageState extends State<MapsPage> {
           final double latitude = data['latitude'] ?? 0.0;
           final double longitude = data['longitude'] ?? 0.0;
           final String category = data['category'] ?? '';
-          final int colorValue = data['color'] ?? Colors.red.value;
+          int? temp;
+          for (var item in _categories) {
+            if (item.name == category) {
+              temp = item.color.value;
+            }
+          }
+          final int colorValue = temp ?? Colors.red.value;
 
           _markers.add(
             Marker(
@@ -273,13 +287,21 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   void _loadCategories() {
-    // Load categories from Firestore or define some default categories
-    // Example:
-    _categories = [
-      Category(name: 'Restaurant', color: Colors.red),
-      Category(name: 'Park', color: Colors.green),
-      // Add more categories as needed
-    ];
+    FirebaseFirestore.instance
+        .collection('categories')
+        .get()
+        .then((querySnapshot) {
+      List<Category> tempList = [];
+      for (var doc in querySnapshot.docs) {
+        var data = doc.data();
+        String name = data['name'];
+        int colorValue = data['color']; // Assuming color is stored as int
+        tempList.add(Category(name: name, color: Color(colorValue)));
+      }
+      setState(() {
+        _categories = tempList;
+      });
+    });
   }
 
   @override
