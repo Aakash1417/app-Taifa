@@ -39,6 +39,7 @@ dependencies:
   google_sign_in: ^6.0.0
   cloud_firestore: ^4.12.1
   google_maps_flutter: ^2.5.0
+  flutter_colorpicker: ^1.0.3
   firebase_core_platform_interface: ^5.0.0
 
 dev_dependencies:

@@ -1,50 +1,140 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class MapSample extends StatefulWidget {
-  const MapSample({super.key});
-
+class MapsPage extends StatefulWidget {
   @override
-  State<MapSample> createState() => MapSampleState();
+  _MapsPageState createState() => _MapsPageState();
 }
 
-class MapSampleState extends State<MapSample> {
-  final Completer<GoogleMapController> _controller =
-      Completer<GoogleMapController>();
+class _MapsPageState extends State<MapsPage> {
+  Set<Marker> _markers = {};
+  LatLng? _temporaryPinLocation;
+  TextEditingController _pinNameController = TextEditingController();
 
-  static const CameraPosition _kGooglePlex = CameraPosition(
-    target: LatLng(53.492412, -113.496737),
-    zoom: 14.4746,
-  );
-
-  static const CameraPosition _kLake = CameraPosition(
-      bearing: 192.8334901395799,
-      target: LatLng(37.43296265331129, -122.08832357078792),
-      tilt: 59.440717697143555,
-      zoom: 19.151926040649414);
+  @override
+  void initState() {
+    super.initState();
+    _loadPinsFromFirestore();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GoogleMap(
-        mapType: MapType.hybrid,
-        initialCameraPosition: _kGooglePlex,
-        onMapCreated: (GoogleMapController controller) {
-          _controller.complete(controller);
-        },
+      appBar: AppBar(
+        title: const Text('Map View'),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _goToTheLake,
-        label: const Text('To the lake!'),
-        icon: const Icon(Icons.directions_boat),
+      body: GoogleMap(
+        onMapCreated: _onMapCreated,
+        onTap: _onMapTap,
+        initialCameraPosition: const CameraPosition(
+          target: LatLng(53.492412, -113.496737), // Initial map position
+          zoom: 8.0,
+        ),
+        markers: _markers,
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _showAddPinDialog();
+        },
+        child: Icon(Icons.add),
       ),
     );
   }
 
-  Future<void> _goToTheLake() async {
-    final GoogleMapController controller = await _controller.future;
-    await controller.animateCamera(CameraUpdate.newCameraPosition(_kLake));
+  void _onMapCreated(GoogleMapController controller) {
+    // Initialize the GoogleMapController here if needed
+  }
+
+  void _onMapTap(LatLng latLng) {
+    setState(() {
+      _temporaryPinLocation = latLng;
+      if (_temporaryPinLocation != null) {
+        _markers.add(
+          Marker(
+            markerId: const MarkerId('temporary_pin'),
+            position: _temporaryPinLocation!,
+          ),
+        );
+      }
+    });
+  }
+
+  Future<void> _showAddPinDialog() async {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add Pin'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _pinNameController,
+                decoration: const InputDecoration(labelText: 'Pin Name'),
+              ),
+              const SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: () {
+                  _addPinToFirestore();
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: Text('Add'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _addPinToFirestore() {
+    final String pinName = _pinNameController.text.trim();
+    if (pinName.isNotEmpty && _temporaryPinLocation != null) {
+      FirebaseFirestore.instance.collection('allPins').add({
+        'name': pinName,
+        'latitude': _temporaryPinLocation!.latitude,
+        'longitude': _temporaryPinLocation!.longitude,
+      });
+      setState(() {
+        _markers.add(
+          Marker(
+            markerId: MarkerId(pinName),
+            position: _temporaryPinLocation!,
+            infoWindow: InfoWindow(title: pinName),
+          ),
+        );
+        _temporaryPinLocation = null;
+        _pinNameController.clear();
+      });
+    }
+  }
+
+  void _loadPinsFromFirestore() {
+    FirebaseFirestore.instance.collection('allPins').snapshots().listen((snapshot) {
+      setState(() {
+        _markers.clear();
+        for (final doc in snapshot.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final String name = data['name'] ?? '';
+          final double latitude = data['latitude'] ?? 0.0;
+          final double longitude = data['longitude'] ?? 0.0;
+
+          _markers.add(
+            Marker(
+              markerId: MarkerId(name),
+              position: LatLng(latitude, longitude),
+              infoWindow: InfoWindow(title: name),
+            ),
+          );
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _pinNameController.dispose();
+    super.dispose();
   }
 }
