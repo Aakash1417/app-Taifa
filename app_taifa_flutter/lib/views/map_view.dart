@@ -4,6 +4,8 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class MapsPage extends StatefulWidget {
+  const MapsPage({super.key});
+
   @override
   _MapsPageState createState() => _MapsPageState();
 }
@@ -13,15 +15,16 @@ class _MapsPageState extends State<MapsPage> {
   LatLng? _temporaryPinLocation;
   TextEditingController _pinNameController = TextEditingController();
 
-  String? _selectedCategory;
+  String? _selectedClient;
   List<Pins> _allPins = [];
-  List<String> _selectedCategories = [];
-  List<Category> _categories = [];
+  List<String> _selectedClients = [];
+  List<Client> _clients = [];
+  String _searchQuery = "";
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    _loadClients();
     _loadPinsFromFirestore();
   }
 
@@ -34,8 +37,8 @@ class _MapsPageState extends State<MapsPage> {
           decoration: InputDecoration(
             hintText: 'Search Pins',
             suffixIcon: IconButton(
-              icon: Icon(Icons.filter_list),
-              onPressed: _showCategoryFilterDialog,
+              icon: const Icon(Icons.filter_list),
+              onPressed: _showClientFilterDialog,
             ),
           ),
         ),
@@ -43,7 +46,7 @@ class _MapsPageState extends State<MapsPage> {
           PopupMenuButton<String>(
             onSelected: _handleMenuSelection,
             itemBuilder: (BuildContext context) {
-              return {'Add Category'}.map((String choice) {
+              return {'Add Client'}.map((String choice) {
                 return PopupMenuItem<String>(
                   value: choice,
                   child: Text(choice),
@@ -67,34 +70,35 @@ class _MapsPageState extends State<MapsPage> {
             : () {
                 _showAddPinDialog();
               },
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
     );
   }
 
   void _onSearchChanged(String query) {
-    // TODO
+    _searchQuery = query;
+    _updateMarkers();
   }
 
-  void _showCategoryFilterDialog() {
+  void _showClientFilterDialog() {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Select Categories'),
+          title: const Text('Select Clients'),
           content: SingleChildScrollView(
             child: ListBody(
-              children: _categories.map((category) {
+              children: _clients.map((client) {
                 return CheckboxListTile(
-                  title: Text(category.name),
-                  value: _selectedCategories.contains(category.name),
+                  title: Text(client.name),
+                  value: _selectedClients.contains(client.name),
                   onChanged: (bool? value) {
                     setState(() {
                       if (value == true) {
-                        _selectedCategories.add(category.name);
+                        _selectedClients.add(client.name);
                       } else {
-                        _selectedCategories.remove(category.name);
+                        _selectedClients.remove(client.name);
                       }
                     });
                   },
@@ -107,7 +111,7 @@ class _MapsPageState extends State<MapsPage> {
               child: const Text('Done'),
               onPressed: () {
                 Navigator.of(context).pop();
-                _updateMarkers(); // Update markers based on selected categories
+                _updateMarkers(); // Update markers based on selected clients
               },
             ),
           ],
@@ -117,8 +121,8 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   void _handleMenuSelection(String choice) {
-    if (choice == 'Add Category') {
-      _showAddCategoryDialog();
+    if (choice == 'Add Client') {
+      _showAddClientDialog();
     }
   }
 
@@ -153,30 +157,30 @@ class _MapsPageState extends State<MapsPage> {
                 ),
                 const SizedBox(height: 16.0),
                 DropdownButtonFormField<String>(
-                  value: _selectedCategory,
-                  hint: Text(_selectedCategory ?? "Select Category"),
+                  value: _selectedClient,
+                  hint: Text(_selectedClient ?? "Select Client"),
                   onChanged: (String? newValue) {
                     setState(() {
-                      _selectedCategory = newValue;
+                      _selectedClient = newValue;
                     });
                   },
                   onSaved: (String? newValue) {
                     setState(() {
-                      _selectedCategory = newValue;
+                      _selectedClient = newValue;
                     });
                   },
-                  items: _categories
-                      .map<DropdownMenuItem<String>>((Category category) {
+                  items:
+                      _clients.map<DropdownMenuItem<String>>((Client client) {
                     return DropdownMenuItem<String>(
-                      value: category.name,
+                      value: client.name,
                       child: Row(
                         children: <Widget>[
                           CircleAvatar(
-                            backgroundColor: category.color,
+                            backgroundColor: client.color,
                             radius: 10,
                           ),
-                          SizedBox(width: 8),
-                          Text(category.name),
+                          const SizedBox(width: 8),
+                          Text(client.name),
                         ],
                       ),
                     );
@@ -199,21 +203,21 @@ class _MapsPageState extends State<MapsPage> {
     );
   }
 
-  Future<void> _showAddCategoryDialog() async {
-    TextEditingController _categoryNameController = TextEditingController();
-    Color _categoryColor = Colors.blue;
+  Future<void> _showAddClientDialog() async {
+    TextEditingController _clientNameController = TextEditingController();
+    Color _clientColor = Colors.blue;
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Add Category'),
+          title: const Text('Add Client'),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
                 TextField(
-                  controller: _categoryNameController,
-                  decoration: const InputDecoration(labelText: 'Category Name'),
+                  controller: _clientNameController,
+                  decoration: const InputDecoration(labelText: 'Client Name'),
                 ),
                 const SizedBox(height: 16.0),
                 ElevatedButton(
@@ -225,9 +229,9 @@ class _MapsPageState extends State<MapsPage> {
                           title: const Text('Pick a color!'),
                           content: SingleChildScrollView(
                             child: ColorPicker(
-                              pickerColor: _categoryColor,
+                              pickerColor: _clientColor,
                               onColorChanged: (Color color) {
-                                _categoryColor = color;
+                                _clientColor = color;
                               },
                             ),
                           ),
@@ -250,14 +254,14 @@ class _MapsPageState extends State<MapsPage> {
           ),
           actions: <Widget>[
             ElevatedButton(
-              child: const Text('Add Category'),
+              child: const Text('Add Client'),
               onPressed: () {
-                _categories.add(Category(
-                    name: _categoryNameController.text,
-                    color: Color(_categoryColor.value)));
-                FirebaseFirestore.instance.collection('categories').add({
-                  'name': _categoryNameController.text,
-                  'color': _categoryColor.value,
+                _clients.add(Client(
+                    name: _clientNameController.text,
+                    color: Color(_clientColor.value)));
+                FirebaseFirestore.instance.collection('clients').add({
+                  'name': _clientNameController.text,
+                  'color': _clientColor.value,
                 }).then((_) {
                   // Handle successful addition
                   Navigator.of(context).pop();
@@ -280,28 +284,30 @@ class _MapsPageState extends State<MapsPage> {
         final String name = pinData.name;
         final double latitude = pinData.latitude;
         final double longitude = pinData.longitude;
-        final String category = pinData.category;
+        final String client = pinData.client;
 
-        if (_selectedCategories.isEmpty ||
-            _selectedCategories.contains(category)) {
-          int? tempColor;
-          for (var cat in _categories) {
-            if (cat.name == category) {
-              tempColor = cat.color.value;
-              break;
+        if (_selectedClients.isEmpty || _selectedClients.contains(client)) {
+          if (_searchQuery == "" ||
+              name.toLowerCase().contains(_searchQuery.toLowerCase())) {
+            int? tempColor;
+            for (var i in _clients) {
+              if (i.name == client) {
+                tempColor = i.color.value;
+                break;
+              }
             }
-          }
-          final int colorValue = tempColor ?? Colors.red.value;
+            final int colorValue = tempColor ?? Colors.red.value;
 
-          _markers.add(
-            Marker(
-              markerId: MarkerId(name),
-              position: LatLng(latitude, longitude),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                  _colorToHue(Color(colorValue))),
-              infoWindow: InfoWindow(title: name),
-            ),
-          );
+            _markers.add(
+              Marker(
+                markerId: MarkerId(name),
+                position: LatLng(latitude, longitude),
+                icon: BitmapDescriptor.defaultMarkerWithHue(
+                    _colorToHue(Color(colorValue))),
+                infoWindow: InfoWindow(title: name),
+              ),
+            );
+          }
         }
       }
     });
@@ -311,16 +317,16 @@ class _MapsPageState extends State<MapsPage> {
     final String pinName = _pinNameController.text.trim();
     if (pinName.isNotEmpty &&
         _temporaryPinLocation != null &&
-        _selectedCategory != null) {
+        _selectedClient != null) {
       FirebaseFirestore.instance.collection('allPins').add({
         'name': pinName,
         'latitude': _temporaryPinLocation!.latitude,
         'longitude': _temporaryPinLocation!.longitude,
-        'category': _selectedCategory,
+        'client': _selectedClient,
       });
       _allPins.add(Pins(
           name: pinName,
-          category: _selectedCategory ?? '',
+          client: _selectedClient ?? '',
           latitude: _temporaryPinLocation!.latitude,
           longitude: _temporaryPinLocation!.longitude));
       _updateMarkers();
@@ -339,11 +345,11 @@ class _MapsPageState extends State<MapsPage> {
         final String name = data['name'] ?? '';
         final double latitude = data['latitude'] ?? 0.0;
         final double longitude = data['longitude'] ?? 0.0;
-        final String category = data['category'] ?? '';
+        final String client = data['client'] ?? '';
 
         _allPins.add(Pins(
             name: name,
-            category: category,
+            client: client,
             latitude: latitude,
             longitude: longitude));
       }
@@ -351,20 +357,20 @@ class _MapsPageState extends State<MapsPage> {
     });
   }
 
-  void _loadCategories() {
+  void _loadClients() {
     FirebaseFirestore.instance
-        .collection('categories')
+        .collection('clients')
         .get()
         .then((querySnapshot) {
-      List<Category> tempList = [];
+      List<Client> tempList = [];
       for (var doc in querySnapshot.docs) {
         var data = doc.data();
         String name = data['name'];
         int colorValue = data['color']; // Assuming color is stored as int
-        tempList.add(Category(name: name, color: Color(colorValue)));
+        tempList.add(Client(name: name, color: Color(colorValue)));
       }
       setState(() {
-        _categories = tempList;
+        _clients = tempList;
       });
     });
   }
@@ -383,20 +389,20 @@ class _MapsPageState extends State<MapsPage> {
 
 class Pins {
   String name;
-  String category;
+  String client;
   double latitude;
   double longitude;
 
   Pins(
       {required this.name,
-      required this.category,
+      required this.client,
       required this.latitude,
       required this.longitude});
 }
 
-class Category {
+class Client {
   String name;
   Color color;
 
-  Category({required this.name, required this.color});
+  Client({required this.name, required this.color});
 }
