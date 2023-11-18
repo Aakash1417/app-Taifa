@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+
 import 'home_page.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -61,11 +62,10 @@ class SignInScreenState extends State<SignInScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Invalid Domain'),
-        content: Text('You must sign in with an @mastereng.com email address.'),
+        title: const Text('Invalid Domain'),
         actions: [
           TextButton(
-            child: Text('OK'),
+            child: const Text('OK'),
             onPressed: () {
               Navigator.of(context).pop(); // Dismiss the dialog
             },
