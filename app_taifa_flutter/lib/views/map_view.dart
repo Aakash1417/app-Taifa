@@ -12,22 +12,33 @@ class _MapsPageState extends State<MapsPage> {
   Set<Marker> _markers = {};
   LatLng? _temporaryPinLocation;
   TextEditingController _pinNameController = TextEditingController();
-  Color _selectedColor = Colors.blue;
+
   String? _selectedCategory;
+  List<Pins> _allPins = [];
+  List<String> _selectedCategories = [];
   List<Category> _categories = [];
 
   @override
   void initState() {
     super.initState();
-    _loadPinsFromFirestore();
     _loadCategories();
+    _loadPinsFromFirestore();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Map View'),
+        title: TextField(
+          onChanged: _onSearchChanged,
+          decoration: InputDecoration(
+            hintText: 'Search Pins',
+            suffixIcon: IconButton(
+              icon: Icon(Icons.filter_list),
+              onPressed: _showCategoryFilterDialog,
+            ),
+          ),
+        ),
         actions: <Widget>[
           PopupMenuButton<String>(
             onSelected: _handleMenuSelection,
@@ -59,6 +70,49 @@ class _MapsPageState extends State<MapsPage> {
         child: Icon(Icons.add),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+    );
+  }
+
+  void _onSearchChanged(String query) {
+    // TODO
+  }
+
+  void _showCategoryFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Select Categories'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: _categories.map((category) {
+                return CheckboxListTile(
+                  title: Text(category.name),
+                  value: _selectedCategories.contains(category.name),
+                  onChanged: (bool? value) {
+                    setState(() {
+                      if (value == true) {
+                        _selectedCategories.add(category.name);
+                      } else {
+                        _selectedCategories.remove(category.name);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+          actions: <Widget>[
+            ElevatedButton(
+              child: const Text('Done'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _updateMarkers(); // Update markers based on selected categories
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -219,58 +273,25 @@ class _MapsPageState extends State<MapsPage> {
     );
   }
 
-  void _addPinToFirestore() {
-    final String pinName = _pinNameController.text.trim();
-    if (pinName.isNotEmpty &&
-        _temporaryPinLocation != null &&
-        _selectedCategory != null) {
-      FirebaseFirestore.instance.collection('allPins').add({
-        'name': pinName,
-        'latitude': _temporaryPinLocation!.latitude,
-        'longitude': _temporaryPinLocation!.longitude,
-        'category': _selectedCategory,
-      });
-      setState(() {
-        _markers.add(
-          Marker(
-            markerId: MarkerId(pinName),
-            position: _temporaryPinLocation!,
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                _colorToHue(_selectedColor)),
-            infoWindow: InfoWindow(title: pinName),
-          ),
-        );
-        _temporaryPinLocation = null;
-        _pinNameController.clear();
-      });
-    }
-  }
+  void _updateMarkers() {
+    setState(() {
+      _markers.clear();
+      for (var pinData in _allPins) {
+        final String name = pinData.name;
+        final double latitude = pinData.latitude;
+        final double longitude = pinData.longitude;
+        final String category = pinData.category;
 
-  double _colorToHue(Color color) {
-    HSLColor hsl = HSLColor.fromColor(color);
-    return hsl.hue;
-  }
-
-  void _loadPinsFromFirestore() {
-    FirebaseFirestore.instance
-        .collection('allPins')
-        .snapshots()
-        .listen((snapshot) {
-      setState(() {
-        _markers.clear();
-        for (final doc in snapshot.docs) {
-          final data = doc.data() as Map<String, dynamic>;
-          final String name = data['name'] ?? '';
-          final double latitude = data['latitude'] ?? 0.0;
-          final double longitude = data['longitude'] ?? 0.0;
-          final String category = data['category'] ?? '';
-          int? temp;
-          for (var item in _categories) {
-            if (item.name == category) {
-              temp = item.color.value;
+        if (_selectedCategories.isEmpty ||
+            _selectedCategories.contains(category)) {
+          int? tempColor;
+          for (var cat in _categories) {
+            if (cat.name == category) {
+              tempColor = cat.color.value;
+              break;
             }
           }
-          final int colorValue = temp ?? Colors.red.value;
+          final int colorValue = tempColor ?? Colors.red.value;
 
           _markers.add(
             Marker(
@@ -282,7 +303,51 @@ class _MapsPageState extends State<MapsPage> {
             ),
           );
         }
+      }
+    });
+  }
+
+  void _addPinToFirestore() {
+    final String pinName = _pinNameController.text.trim();
+    if (pinName.isNotEmpty &&
+        _temporaryPinLocation != null &&
+        _selectedCategory != null) {
+      FirebaseFirestore.instance.collection('allPins').add({
+        'name': pinName,
+        'latitude': _temporaryPinLocation!.latitude,
+        'longitude': _temporaryPinLocation!.longitude,
+        'category': _selectedCategory,
       });
+      _allPins.add(Pins(
+          name: pinName,
+          category: _selectedCategory ?? '',
+          latitude: _temporaryPinLocation!.latitude,
+          longitude: _temporaryPinLocation!.longitude));
+      _updateMarkers();
+      _temporaryPinLocation = null;
+      _pinNameController.clear();
+    }
+  }
+
+  void _loadPinsFromFirestore() {
+    FirebaseFirestore.instance
+        .collection('allPins')
+        .get()
+        .then((querySnapshot) {
+      for (var doc in querySnapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        final String name = data['name'] ?? '';
+        final double latitude = data['latitude'] ?? 0.0;
+        final double longitude = data['longitude'] ?? 0.0;
+        final String category = data['category'] ?? '';
+
+        _allPins.add(Pins(
+            name: name,
+            category: category,
+            latitude: latitude,
+            longitude: longitude));
+      }
+      _updateMarkers();
     });
   }
 
@@ -304,11 +369,29 @@ class _MapsPageState extends State<MapsPage> {
     });
   }
 
+  double _colorToHue(Color color) {
+    HSLColor hsl = HSLColor.fromColor(color);
+    return hsl.hue;
+  }
+
   @override
   void dispose() {
     _pinNameController.dispose();
     super.dispose();
   }
+}
+
+class Pins {
+  String name;
+  String category;
+  double latitude;
+  double longitude;
+
+  Pins(
+      {required this.name,
+      required this.category,
+      required this.latitude,
+      required this.longitude});
 }
 
 class Category {
