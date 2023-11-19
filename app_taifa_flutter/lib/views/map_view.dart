@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:developer';
 
 class MapsPage extends StatefulWidget {
   const MapsPage({super.key});
@@ -14,6 +15,7 @@ class _MapsPageState extends State<MapsPage> {
   Set<Marker> _markers = {};
   LatLng? _temporaryPinLocation;
   TextEditingController _pinNameController = TextEditingController();
+  TextEditingController _coordsController = TextEditingController();
 
   String? _selectedClient;
   List<Pins> _allPins = [];
@@ -65,11 +67,7 @@ class _MapsPageState extends State<MapsPage> {
         markers: _markers,
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _temporaryPinLocation == null
-            ? null
-            : () {
-                _showAddPinDialog();
-              },
+        onPressed: _showAddPinDialog,
         child: const Icon(Icons.add),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
@@ -141,8 +139,6 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   Future<void> _showAddPinDialog() async {
-    if (_temporaryPinLocation == null) return;
-
     showDialog(
       context: context,
       builder: (context) {
@@ -185,6 +181,12 @@ class _MapsPageState extends State<MapsPage> {
                       ),
                     );
                   }).toList(),
+                ),
+                const SizedBox(height: 16.0),
+                TextField(
+                  controller: _coordsController,
+                  decoration: const InputDecoration(
+                      labelText: 'Coordinates (Optional)'),
                 ),
               ],
             ),
@@ -314,24 +316,48 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   void _addPinToFirestore() {
-    final String pinName = _pinNameController.text.trim();
-    if (pinName.isNotEmpty &&
-        _temporaryPinLocation != null &&
-        _selectedClient != null) {
-      FirebaseFirestore.instance.collection('allPins').add({
-        'name': pinName,
-        'latitude': _temporaryPinLocation!.latitude,
-        'longitude': _temporaryPinLocation!.longitude,
-        'client': _selectedClient,
-      });
-      _allPins.add(Pins(
-          name: pinName,
-          client: _selectedClient ?? '',
-          latitude: _temporaryPinLocation!.latitude,
-          longitude: _temporaryPinLocation!.longitude));
-      _updateMarkers();
-      _temporaryPinLocation = null;
-      _pinNameController.clear();
+    final String pinNameText = _pinNameController.text.trim();
+    final String coordsText = _coordsController.text.trim();
+    final regex = RegExp(r'^\s*-?\d+(\.\d+)?\s*[ ,]\s*-?\d+(\.\d+)?\s*$');
+
+    if (pinNameText.isNotEmpty && _selectedClient != null) {
+      if (regex.hasMatch(coordsText)) {
+        final tempSplitString = coordsText.split(RegExp(r'\s*,\s*|\s+')).map((s) => s.trim()).toList();
+        log(tempSplitString[0].toString());
+        log(tempSplitString[1].toString());
+
+        FirebaseFirestore.instance.collection('allPins').add({
+          'name': pinNameText,
+          'latitude': double.parse(tempSplitString[0]),
+          'longitude': double.parse(tempSplitString[1]),
+          'client': _selectedClient,
+        });
+        _allPins.add(Pins(
+            name: pinNameText,
+            client: _selectedClient ?? '',
+            latitude: double.parse(tempSplitString[0]),
+            longitude: double.parse(tempSplitString[1])));
+        _temporaryPinLocation = null;
+        _pinNameController.clear();
+        _coordsController.clear();
+        _updateMarkers();
+      } else if (_temporaryPinLocation != null) {
+        FirebaseFirestore.instance.collection('allPins').add({
+          'name': pinNameText,
+          'latitude': _temporaryPinLocation!.latitude,
+          'longitude': _temporaryPinLocation!.longitude,
+          'client': _selectedClient,
+        });
+        _allPins.add(Pins(
+            name: pinNameText,
+            client: _selectedClient ?? '',
+            latitude: _temporaryPinLocation!.latitude,
+            longitude: _temporaryPinLocation!.longitude));
+        _temporaryPinLocation = null;
+        _pinNameController.clear();
+        _coordsController.clear();
+        _updateMarkers();
+      }
     }
   }
 
