@@ -14,6 +14,7 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Main Page'),
+        backgroundColor: Color.fromRGBO(132, 17, 17, 1),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -25,75 +26,72 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
-      body: const Center(
-        child: Text('Welcome to the Main Page!'),
+      body: Column(
+        children: [
+          // Row 1
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    IconButton(
+                      icon: Image.asset('assets/images/maps.png', height: 80),
+                      onPressed: () async {
+                        // go to maps view
+                      },
+                    ),
+                    Text('Maps'),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    IconButton(
+                      icon: Image.asset('assets/images/QR.png', height: 80),
+                      onPressed: () async {
+                        // go to QR view
+                      },
+                    ),
+                    Text('QR'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Spacer(), // Add spacing between rows
+          // Row 2 (you can add more rows as needed)
+          Row(
+            children: [
+              Expanded(
+                child: IconButton(
+                  icon: Icon(Icons.home, size: 40),
+                  onPressed: () async {
+                    // add logic for the third button
+                  },
+                ),
+              ),
+              Expanded(
+                child: IconButton(
+                  icon: Icon(Icons.account_box, size: 40),
+                  onPressed: () async {
+                    // add logic for the fourth button
+                  },
+                ),
+              ),
+              Expanded(
+                child: IconButton(
+                  icon: Icon(Icons.settings, size: 40),
+                  onPressed: () async {
+                    // add logic for the fourth button
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-// import 'package:flutter/material.dart';
-//
-// void main() {
-//   runApp(MainMenuApp());
-// }
-//
-// class MainMenuApp extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       theme: ThemeData(
-//         primaryColor: Colors.red, // Set your primary color here
-//         secondaryHeaderColor: Colors.red, // Set your secondary color here
-//         // You can customize more aspects of the theme here, such as text styles, fonts, etc.
-//       ),
-//       home: MainMenuView(),
-//     );
-//   }
-// }
-//
-// class MainMenuView extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text('Main Menu'),
-//       ),
-//       body: Column(
-//         children: <Widget>[
-//           Align(
-//             alignment: Alignment.topLeft,
-//             child: ExpandedButton('Site Locations'),
-//           ),
-//           Align(
-//             alignment: Alignment.topLeft,
-//             child: ExpandedButton('Site Locations - Admin'),
-//           ),
-//           Align(
-//             alignment: Alignment.topLeft,
-//             child: ExpandedButton('Equipment Tracking'),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-//
-// class ExpandedButton extends StatelessWidget {
-//   final String label;
-//
-//   ExpandedButton(this.label);
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       padding: EdgeInsets.all(16.0),
-//       child: ElevatedButton(
-//         onPressed: () {
-//           // Add code to navigate to a different screen or perform an action.
-//         },
-//         child: Text(label),
-//       ),
-//     );
-//   }
-// }

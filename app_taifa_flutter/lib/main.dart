@@ -28,7 +28,8 @@ class MyApp extends StatelessWidget {
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
-          if (snapshot.hasData) {
+          // if (snapshot.hasData) {
+          if (true) {
             return HomePage(
                 onLogout: () =>
                     _navigateToSignIn(context)); // User is logged in
