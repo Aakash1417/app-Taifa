@@ -1,8 +1,12 @@
+import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'dart:developer';
+
+import '../objects/Client.dart';
+import '../objects/Pins.dart';
 
 class MapsPage extends StatefulWidget {
   const MapsPage({super.key});
@@ -322,7 +326,10 @@ class _MapsPageState extends State<MapsPage> {
 
     if (pinNameText.isNotEmpty && _selectedClient != null) {
       if (regex.hasMatch(coordsText)) {
-        final tempSplitString = coordsText.split(RegExp(r'\s*,\s*|\s+')).map((s) => s.trim()).toList();
+        final tempSplitString = coordsText
+            .split(RegExp(r'\s*,\s*|\s+'))
+            .map((s) => s.trim())
+            .toList();
         log(tempSplitString[0].toString());
         log(tempSplitString[1].toString());
 
@@ -411,24 +418,4 @@ class _MapsPageState extends State<MapsPage> {
     _pinNameController.dispose();
     super.dispose();
   }
-}
-
-class Pins {
-  String name;
-  String client;
-  double latitude;
-  double longitude;
-
-  Pins(
-      {required this.name,
-      required this.client,
-      required this.latitude,
-      required this.longitude});
-}
-
-class Client {
-  String name;
-  Color color;
-
-  Client({required this.name, required this.color});
 }

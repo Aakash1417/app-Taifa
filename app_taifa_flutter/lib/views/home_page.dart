@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'map_view.dart';
+
 class HomePage extends StatelessWidget {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final VoidCallback onLogout;
@@ -14,7 +16,7 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Main Page'),
-        backgroundColor: Color.fromRGBO(132, 17, 17, 1),
+        backgroundColor: const Color.fromRGBO(132, 17, 17, 1),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -37,10 +39,14 @@ class HomePage extends StatelessWidget {
                     IconButton(
                       icon: Image.asset('assets/images/maps.png', height: 80),
                       onPressed: () async {
-                        // go to maps view
+                        // Navigate to MapsPage when the button is pressed
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => MapsPage()),
+                        );
                       },
                     ),
-                    Text('Maps'),
+                    const Text('Maps'),
                   ],
                 ),
               ),
@@ -53,19 +59,19 @@ class HomePage extends StatelessWidget {
                         // go to QR view
                       },
                     ),
-                    Text('QR'),
+                    const Text('QR'),
                   ],
                 ),
               ),
             ],
           ),
-          Spacer(), // Add spacing between rows
+          const Spacer(), // Add spacing between rows
           // Row 2 (you can add more rows as needed)
           Row(
             children: [
               Expanded(
                 child: IconButton(
-                  icon: Icon(Icons.home, size: 40),
+                  icon: const Icon(Icons.home, size: 40),
                   onPressed: () async {
                     // add logic for the third button
                   },
@@ -73,7 +79,7 @@ class HomePage extends StatelessWidget {
               ),
               Expanded(
                 child: IconButton(
-                  icon: Icon(Icons.account_box, size: 40),
+                  icon: const Icon(Icons.account_box, size: 40),
                   onPressed: () async {
                     // add logic for the fourth button
                   },
@@ -81,7 +87,7 @@ class HomePage extends StatelessWidget {
               ),
               Expanded(
                 child: IconButton(
-                  icon: Icon(Icons.settings, size: 40),
+                  icon: const Icon(Icons.settings, size: 40),
                   onPressed: () async {
                     // add logic for the fourth button
                   },
