@@ -13,7 +13,7 @@ class SignInScreen extends StatefulWidget {
 
 class SignInScreenState extends State<SignInScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn googleSignIn = GoogleSignIn();
+  final GoogleSignIn googleSignIn = GoogleSignIn(clientId: "95581424221-knrsei9i3lkm0ahpvd3rkqijsp1s67ad.apps.googleusercontent.com");
 
   Future<void> signInWithGoogle() async {
     try {
@@ -48,6 +48,7 @@ class SignInScreenState extends State<SignInScreen> {
         }
       }
     } catch (e) {
+      print(e);
       // Handle other errors here
     }
   }
