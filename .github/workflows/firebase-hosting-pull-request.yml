@@ -12,6 +12,7 @@ jobs:
       - run: cd ./app_taifa_flutter
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
+          entrypoint: ./app_taifa_flutter
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_APP_TAIFA }}'
           projectId: app-taifa
