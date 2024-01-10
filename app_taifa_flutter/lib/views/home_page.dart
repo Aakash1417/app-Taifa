@@ -59,7 +59,7 @@ class HomePage extends StatelessWidget {
                         // go to QR view
                       },
                     ),
-                    const Text('QR'),
+                    const Text('QR Code'),
                   ],
                 ),
               ),
