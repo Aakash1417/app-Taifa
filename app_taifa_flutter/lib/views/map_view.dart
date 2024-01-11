@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'dart:developer';
+import 'dart:ffi';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../database_helper.dart';
 import '../objects/Client.dart';
 import '../objects/Pins.dart';
 
@@ -30,8 +32,14 @@ class _MapsPageState extends State<MapsPage> {
   @override
   void initState() {
     super.initState();
-    _loadClients();
-    _loadPinsFromFirestore();
+    loadClients().then((List<Client>? castedClients) {
+      _clients = castedClients ?? [];
+      _updateMarkers();
+    });
+    loadPinsFromFirestore().then((List<Pins>? castedPins) {
+      _allPins = castedPins ?? [];
+      _updateMarkers();
+    });
   }
 
   @override
@@ -199,7 +207,7 @@ class _MapsPageState extends State<MapsPage> {
             ElevatedButton(
               child: const Text('Add Pin'),
               onPressed: () {
-                _addPinToFirestore();
+                _updatePinFirestore();
                 Navigator.of(context).pop();
               },
             ),
@@ -265,15 +273,9 @@ class _MapsPageState extends State<MapsPage> {
                 _clients.add(Client(
                     name: _clientNameController.text,
                     color: Color(_clientColor.value)));
-                FirebaseFirestore.instance.collection('clients').add({
-                  'name': _clientNameController.text,
-                  'color': _clientColor.value,
-                }).then((_) {
-                  // Handle successful addition
-                  Navigator.of(context).pop();
-                }).catchError((error) {
-                  // Handle errors
-                });
+                addClientToFirestore(
+                        _clientNameController.text, _clientColor.value)
+                    .then((value) => Navigator.of(context).pop());
                 Navigator.of(context).pop();
               },
             ),
@@ -319,7 +321,7 @@ class _MapsPageState extends State<MapsPage> {
     });
   }
 
-  void _addPinToFirestore() {
+  void _updatePinFirestore() {
     final String pinNameText = _pinNameController.text.trim();
     final String coordsText = _coordsController.text.trim();
     final regex = RegExp(r'^\s*-?\d+(\.\d+)?\s*[ ,]\s*-?\d+(\.\d+)?\s*$');
@@ -333,12 +335,12 @@ class _MapsPageState extends State<MapsPage> {
         log(tempSplitString[0].toString());
         log(tempSplitString[1].toString());
 
-        FirebaseFirestore.instance.collection('allPins').add({
-          'name': pinNameText,
-          'latitude': double.parse(tempSplitString[0]),
-          'longitude': double.parse(tempSplitString[1]),
-          'client': _selectedClient,
-        });
+        addPinToFirestore(
+          pinNameText,
+          _selectedClient,
+          double.parse(tempSplitString[0]),
+          double.parse(tempSplitString[1]),
+        );
         _allPins.add(Pins(
             name: pinNameText,
             client: _selectedClient ?? '',
@@ -349,12 +351,12 @@ class _MapsPageState extends State<MapsPage> {
         _coordsController.clear();
         _updateMarkers();
       } else if (_temporaryPinLocation != null) {
-        FirebaseFirestore.instance.collection('allPins').add({
-          'name': pinNameText,
-          'latitude': _temporaryPinLocation!.latitude,
-          'longitude': _temporaryPinLocation!.longitude,
-          'client': _selectedClient,
-        });
+        addPinToFirestore(
+          pinNameText,
+          _selectedClient,
+          _temporaryPinLocation!.latitude,
+          _temporaryPinLocation!.longitude,
+        );
         _allPins.add(Pins(
             name: pinNameText,
             client: _selectedClient ?? '',
@@ -366,46 +368,6 @@ class _MapsPageState extends State<MapsPage> {
         _updateMarkers();
       }
     }
-  }
-
-  void _loadPinsFromFirestore() {
-    FirebaseFirestore.instance
-        .collection('allPins')
-        .get()
-        .then((querySnapshot) {
-      for (var doc in querySnapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        final String name = data['name'] ?? '';
-        final double latitude = data['latitude'] ?? 0.0;
-        final double longitude = data['longitude'] ?? 0.0;
-        final String client = data['client'] ?? '';
-
-        _allPins.add(Pins(
-            name: name,
-            client: client,
-            latitude: latitude,
-            longitude: longitude));
-      }
-      _updateMarkers();
-    });
-  }
-
-  void _loadClients() {
-    FirebaseFirestore.instance
-        .collection('clients')
-        .get()
-        .then((querySnapshot) {
-      List<Client> tempList = [];
-      for (var doc in querySnapshot.docs) {
-        var data = doc.data();
-        String name = data['name'];
-        int colorValue = data['color']; // Assuming color is stored as int
-        tempList.add(Client(name: name, color: Color(colorValue)));
-      }
-      setState(() {
-        _clients = tempList;
-      });
-    });
   }
 
   double _colorToHue(Color color) {
