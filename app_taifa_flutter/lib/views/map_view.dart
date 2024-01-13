@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:ffi';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -274,8 +273,7 @@ class _MapsPageState extends State<MapsPage> {
                     name: _clientNameController.text,
                     color: Color(_clientColor.value)));
                 addClientToFirestore(
-                        _clientNameController.text, _clientColor.value)
-                    .then((value) => Navigator.of(context).pop());
+                        _clientNameController.text, _clientColor.value);
                 Navigator.of(context).pop();
               },
             ),
@@ -286,6 +284,7 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   void _updateMarkers() {
+    _markers.clear();
     setState(() {
       _markers.clear();
       for (var pinData in _allPins) {
