@@ -272,9 +272,10 @@ class _MapsPageState extends State<MapsPage> {
               onPressed: () {
                 _clients.add(Client(
                     name: _clientNameController.text,
-                    color: Color(_clientColor.value)));
+                    color: Color(_clientColor.value),
+                    updatedDate: DateTime.now()));
                 addClientToFirestore(
-                        _clientNameController.text, _clientColor.value);
+                    _clientNameController.text, _clientColor.value);
                 Navigator.of(context).pop();
               },
             ),
@@ -345,7 +346,8 @@ class _MapsPageState extends State<MapsPage> {
             name: pinNameText,
             client: _selectedClient ?? '',
             latitude: double.parse(tempSplitString[0]),
-            longitude: double.parse(tempSplitString[1])));
+            longitude: double.parse(tempSplitString[1]),
+            updatedDate: DateTime.now()));
         _temporaryPinLocation = null;
         _pinNameController.clear();
         _coordsController.clear();
@@ -357,11 +359,14 @@ class _MapsPageState extends State<MapsPage> {
           _temporaryPinLocation!.latitude,
           _temporaryPinLocation!.longitude,
         );
-        _allPins.add(Pins(
-            name: pinNameText,
-            client: _selectedClient ?? '',
-            latitude: _temporaryPinLocation!.latitude,
-            longitude: _temporaryPinLocation!.longitude));
+        _allPins.add(
+          Pins(
+              name: pinNameText,
+              client: _selectedClient ?? '',
+              latitude: _temporaryPinLocation!.latitude,
+              longitude: _temporaryPinLocation!.longitude,
+              updatedDate: DateTime.now()),
+        );
         _temporaryPinLocation = null;
         _pinNameController.clear();
         _coordsController.clear();

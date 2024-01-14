@@ -17,7 +17,9 @@ Future<List<Client>?> loadClients() async {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         String name = data['name'];
         int colorValue = data['color']; // Assuming color is stored as int
-        tempList.add(Client(name: name, color: Color(colorValue)));
+        final DateTime date = data['lastUpdatedDate'] ?? '';
+
+        tempList.add(Client(name: name, color: Color(colorValue), updatedDate: date));
       });
     });
     return tempList;
@@ -40,11 +42,14 @@ Future<List<Pins>?> loadPinsFromFirestore() async {
         final double latitude = data['latitude'] ?? 0.0;
         final double longitude = data['longitude'] ?? 0.0;
         final String client = data['client'] ?? '';
+        final DateTime date = data['lastUpdatedDate'] ?? '';
+
         allPins.add(Pins(
           name: name,
           client: client,
           latitude: latitude,
           longitude: longitude,
+          updatedDate: date,
         ));
       });
     });
@@ -87,9 +92,7 @@ Future<String?> checkUserInFirestore(String email) async {
 Future<String?> addUserToFirestore(String email) async {
   // adds user to firestore with role of Employee
   // create enum for roles
-
 }
-
 
 Future<void> addClientToFirestore(String clientName, int clientColor) async {
   FirebaseFirestore.instance.collection("clients").add({
@@ -113,5 +116,6 @@ void addPinToFirestore(
     'latitude': latitude,
     'longitude': longitude,
     'client': selectedClient,
+    'lastUpdatedDate': DateTime.now(),
   });
 }
