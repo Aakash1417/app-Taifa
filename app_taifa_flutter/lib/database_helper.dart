@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 import '../objects/Client.dart';
 import '../objects/Pins.dart';
 
-
 Future<List<Client>?> loadClients() async {
   List<Client> tempList = [];
   try {
-    await FirebaseFirestore.instance.collection("clients").get().then((QuerySnapshot querySnapshot) {
+    await FirebaseFirestore.instance
+        .collection("clients")
+        .get()
+        .then((QuerySnapshot querySnapshot) {
       querySnapshot.docs.forEach((DocumentSnapshot doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         String name = data['name'];
@@ -28,7 +30,10 @@ Future<List<Client>?> loadClients() async {
 Future<List<Pins>?> loadPinsFromFirestore() async {
   List<Pins> allPins = [];
   try {
-    await FirebaseFirestore.instance.collection("allPins").get().then((QuerySnapshot querySnapshot) {
+    await FirebaseFirestore.instance
+        .collection("allPins")
+        .get()
+        .then((QuerySnapshot querySnapshot) {
       querySnapshot.docs.forEach((DocumentSnapshot doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         final String name = data['name'] ?? '';
@@ -51,7 +56,42 @@ Future<List<Pins>?> loadPinsFromFirestore() async {
   }
 }
 
-Future<void> addClientToFirestore(String clientName, int clientColor) async{
+Future<String?> getRoleFromFirestore(String email) async {
+  String role = '';
+  try {
+    await FirebaseFirestore.instance
+        .collection("users")
+        .where('email', isEqualTo: email)
+        .get()
+        .then((QuerySnapshot querySnapshot) {
+      querySnapshot.docs.forEach((DocumentSnapshot doc) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        role = data['role'] ?? '';
+      });
+    });
+    if (role != '') {
+      return role;
+    }
+    return null;
+  } catch (e) {
+    print("Error loading pins: $e");
+    return null;
+  }
+}
+
+Future<String?> checkUserInFirestore(String email) async {
+  // checks if the user has already logged in to app
+  // SignInScreenState.currentUser?.email
+}
+
+Future<String?> addUserToFirestore(String email) async {
+  // adds user to firestore with role of Employee
+  // create enum for roles
+
+}
+
+
+Future<void> addClientToFirestore(String clientName, int clientColor) async {
   FirebaseFirestore.instance.collection("clients").add({
     'name': clientName,
     'color': clientColor,

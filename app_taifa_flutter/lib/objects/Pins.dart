@@ -1,5 +1,3 @@
-
-
 class Pins {
   String name;
   String client;
