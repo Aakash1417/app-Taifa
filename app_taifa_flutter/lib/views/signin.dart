@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../database_helper.dart';
+import '../objects/roles.dart';
 import 'home_page.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -13,8 +15,11 @@ class SignInScreen extends StatefulWidget {
 
 class SignInScreenState extends State<SignInScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn googleSignIn = GoogleSignIn(clientId: "95581424221-knrsei9i3lkm0ahpvd3rkqijsp1s67ad.apps.googleusercontent.com");
+  final GoogleSignIn googleSignIn = GoogleSignIn(
+      clientId:
+          "95581424221-knrsei9i3lkm0ahpvd3rkqijsp1s67ad.apps.googleusercontent.com");
   static User? currentUser;
+  static UserRole? role;
 
   Future<void> signInWithGoogle() async {
     try {
@@ -35,6 +40,7 @@ class SignInScreenState extends State<SignInScreen> {
         if (user != null && user.email!.endsWith('@taifaengineering.com')) {
           if (!mounted) return; // Check if the widget is still in the tree
           currentUser = user;
+          updateSignedInUser(user.email.toString());
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -54,8 +60,6 @@ class SignInScreenState extends State<SignInScreen> {
       // Handle other errors here
     }
   }
-
-
 
   void _navigateToSignIn(BuildContext context) {
     Navigator.of(context).pushReplacement(MaterialPageRoute(

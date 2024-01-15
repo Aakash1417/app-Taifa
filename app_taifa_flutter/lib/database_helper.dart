@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../objects/Client.dart';
-import '../objects/Pins.dart';
+import 'objects/Client.dart';
+import 'objects/Pins.dart';
+import 'objects/roles.dart';
 
 Future<List<Client>?> loadClients() async {
   List<Client> tempList = [];
@@ -16,10 +18,13 @@ Future<List<Client>?> loadClients() async {
       querySnapshot.docs.forEach((DocumentSnapshot doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         String name = data['name'];
-        int colorValue = data['color']; // Assuming color is stored as int
-        final DateTime date = data['lastUpdatedDate'] ?? '';
+        int colorValue = data['color'];
+        final String date = data['lastUpdatedDate'] ?? '';
 
-        tempList.add(Client(name: name, color: Color(colorValue), updatedDate: date));
+        tempList.add(Client(
+            name: name,
+            color: Color(colorValue),
+            updatedDate: DateTime.parse(date)));
       });
     });
     return tempList;
@@ -42,14 +47,14 @@ Future<List<Pins>?> loadPinsFromFirestore() async {
         final double latitude = data['latitude'] ?? 0.0;
         final double longitude = data['longitude'] ?? 0.0;
         final String client = data['client'] ?? '';
-        final DateTime date = data['lastUpdatedDate'] ?? '';
+        final String date = data['lastUpdatedDate'] ?? '';
 
         allPins.add(Pins(
           name: name,
           client: client,
           latitude: latitude,
           longitude: longitude,
-          updatedDate: date,
+          updatedDate: DateTime.parse(date),
         ));
       });
     });
@@ -61,43 +66,42 @@ Future<List<Pins>?> loadPinsFromFirestore() async {
   }
 }
 
-Future<String?> getRoleFromFirestore(String email) async {
+Future<void> updateSignedInUser(String email) async {
+  // checks if the user has already logged in to app, if the user already exists then update their last signed in date. if they don't already exist then create their info with this email and set intial role to be employee. create a enum for roles, for employee and admin
+  final CollectionReference usersCollection =
+      FirebaseFirestore.instance.collection('users');
   String role = '';
   try {
-    await FirebaseFirestore.instance
-        .collection("users")
-        .where('email', isEqualTo: email)
-        .get()
-        .then((QuerySnapshot querySnapshot) {
-      querySnapshot.docs.forEach((DocumentSnapshot doc) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        role = data['role'] ?? '';
+    DocumentSnapshot userSnapshot = await usersCollection.doc(email).get();
+    if (userSnapshot.exists) {
+      // User already exists, update last signed in date
+      await usersCollection.doc(email).update({
+        'lastSignIn': FieldValue.serverTimestamp(),
       });
-    });
-    if (role != '') {
-      return role;
+      Map<String, dynamic> doc = userSnapshot.data() as Map<String, dynamic>;
+      role = doc['role'] ?? '';
+      if (role != '') {
+        SignInScreenState.role =
+            UserRole.values.firstWhere((e) => e.name == role);
+      }
+    } else {
+      // User doesn't exist, create new user with initial role of employee
+      await usersCollection.doc(email).set({
+        'email': email,
+        'role': UserRole.employee.name,
+        'lastSignIn': FieldValue.serverTimestamp(),
+      });
     }
-    return null;
-  } catch (e) {
-    print("Error loading pins: $e");
-    return null;
+  } catch (error) {
+    print('Error checking user: $error');
   }
-}
-
-Future<String?> checkUserInFirestore(String email) async {
-  // checks if the user has already logged in to app
-  // SignInScreenState.currentUser?.email
-}
-
-Future<String?> addUserToFirestore(String email) async {
-  // adds user to firestore with role of Employee
-  // create enum for roles
 }
 
 Future<void> addClientToFirestore(String clientName, int clientColor) async {
   FirebaseFirestore.instance.collection("clients").add({
     'name': clientName,
     'color': clientColor,
+    'createdTime': DateTime.now().toIso8601String(),
   }).then((_) {
     // Handle successful addition
   }).catchError((error) {
@@ -116,6 +120,6 @@ void addPinToFirestore(
     'latitude': latitude,
     'longitude': longitude,
     'client': selectedClient,
-    'lastUpdatedDate': DateTime.now(),
+    'lastUpdatedDate': DateTime.now().toIso8601String(),
   });
 }
