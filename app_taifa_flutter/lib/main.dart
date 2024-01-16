@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
+import 'database_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,8 +15,29 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool isAuthenticated = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Call updateSignedInUser here to ensure it's only called once
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (user != null) {
+        SignInScreenState.currentUser = user;
+        updateSignedInUser(user.email.toString() ?? '');
+        isAuthenticated = true;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,19 +47,9 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            SignInScreenState.currentUser = snapshot.data;
-            return HomePage(
-                onLogout: () =>
-                    _navigateToSignIn(context)); // User is logged in
-          } else {
-            return SignInScreen(); // User is not logged in
-          }
-        },
-      ),
+      home: isAuthenticated
+          ? HomePage(onLogout: () => _navigateToSignIn(context))
+          : SignInScreen(),
     );
   }
 

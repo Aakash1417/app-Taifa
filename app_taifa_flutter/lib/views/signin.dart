@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../database_helper.dart';
-import '../objects/roles.dart';
 import 'home_page.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -19,7 +18,8 @@ class SignInScreenState extends State<SignInScreen> {
       clientId:
           "95581424221-knrsei9i3lkm0ahpvd3rkqijsp1s67ad.apps.googleusercontent.com");
   static User? currentUser;
-  static UserRole? role;
+  static String? role;
+  static List<String>? perms;
 
   Future<void> signInWithGoogle() async {
     try {

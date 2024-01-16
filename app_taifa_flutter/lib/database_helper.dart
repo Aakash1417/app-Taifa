@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 
 import 'objects/Client.dart';
 import 'objects/Pins.dart';
-import 'objects/roles.dart';
 
 Future<List<Client>?> loadClients() async {
   List<Client> tempList = [];
@@ -76,20 +75,32 @@ Future<void> updateSignedInUser(String email) async {
     if (userSnapshot.exists) {
       // User already exists, update last signed in date
       await usersCollection.doc(email).update({
-        'lastSignIn': FieldValue.serverTimestamp(),
+        'lastSignIn': DateTime.now().toIso8601String(),
       });
       Map<String, dynamic> doc = userSnapshot.data() as Map<String, dynamic>;
       role = doc['role'] ?? '';
       if (role != '') {
-        SignInScreenState.role =
-            UserRole.values.firstWhere((e) => e.name == role);
+        SignInScreenState.role = role;
+        // getting current user permissions
+        var documentSnapshot = await FirebaseFirestore.instance
+            .collection('roles')
+            .doc(role)
+            .get();
+        if (documentSnapshot.exists) {
+          List<dynamic>? dynamicArray = documentSnapshot.data()?['perms'];
+          if (dynamicArray != null && dynamicArray.isNotEmpty) {
+            List<String>? stringArray =
+                dynamicArray.cast<String>(); // Explicit cast
+            SignInScreenState.perms = stringArray;
+          }
+        }
       }
     } else {
       // User doesn't exist, create new user with initial role of employee
       await usersCollection.doc(email).set({
         'email': email,
-        'role': UserRole.employee.name,
-        'lastSignIn': FieldValue.serverTimestamp(),
+        'role': 'employee',
+        'lastSignIn': DateTime.now().toIso8601String(),
       });
     }
   } catch (error) {
