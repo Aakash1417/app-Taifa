@@ -18,12 +18,12 @@ Future<List<Client>?> loadClients() async {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         String name = data['name'];
         int colorValue = data['color'];
-        final String date = data['lastUpdatedDate'] ?? '';
+        final String date = data['lastUpdated'] ?? '';
 
         tempList.add(Client(
             name: name,
             color: Color(colorValue),
-            updatedDate: DateTime.parse(date)));
+            lastUpdated: DateTime.parse(date)));
       });
     });
     return tempList;
@@ -46,14 +46,16 @@ Future<List<Pins>?> loadPinsFromFirestore() async {
         final double latitude = data['latitude'] ?? 0.0;
         final double longitude = data['longitude'] ?? 0.0;
         final String client = data['client'] ?? '';
-        final String date = data['lastUpdatedDate'] ?? '';
+        final String date = data['lastUpdated'] ?? '';
+        final String createdBy = data['createdBy'] ?? '';
 
         allPins.add(Pins(
           name: name,
           client: client,
           latitude: latitude,
           longitude: longitude,
-          updatedDate: DateTime.parse(date),
+          lastUpdated: DateTime.parse(date),
+          createdBy: createdBy,
         ));
       });
     });
@@ -112,7 +114,7 @@ Future<void> addClientToFirestore(String clientName, int clientColor) async {
   FirebaseFirestore.instance.collection("clients").add({
     'name': clientName,
     'color': clientColor,
-    'createdTime': DateTime.now().toIso8601String(),
+    'lastUpdated': DateTime.now().toIso8601String(),
   }).then((_) {
     // Handle successful addition
   }).catchError((error) {
@@ -131,6 +133,7 @@ void addPinToFirestore(
     'latitude': latitude,
     'longitude': longitude,
     'client': selectedClient,
-    'lastUpdatedDate': DateTime.now().toIso8601String(),
+    'lastUpdated': DateTime.now().toIso8601String(),
+    'createdBy': SignInScreenState.currentUser?.email
   });
 }

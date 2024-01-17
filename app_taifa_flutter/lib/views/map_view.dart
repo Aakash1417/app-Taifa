@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -56,17 +57,19 @@ class _MapsPageState extends State<MapsPage> {
           ),
         ),
         actions: <Widget>[
-          PopupMenuButton<String>(
-            onSelected: _handleMenuSelection,
-            itemBuilder: (BuildContext context) {
-              return {'Add Client'}.map((String choice) {
-                return PopupMenuItem<String>(
-                  value: choice,
-                  child: Text(choice),
-                );
-              }).toList();
-            },
-          ),
+          if (SignInScreenState.perms != null &&
+              SignInScreenState.perms!.contains("AddClient"))
+            PopupMenuButton<String>(
+              onSelected: _handleMenuSelection,
+              itemBuilder: (BuildContext context) {
+                return {'AddClient'}.map((String choice) {
+                  return PopupMenuItem<String>(
+                    value: choice,
+                    child: Text(choice),
+                  );
+                }).toList();
+              },
+            ),
         ],
       ),
       body: GoogleMap(
@@ -130,7 +133,7 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   void _handleMenuSelection(String choice) {
-    if (choice == 'Add Client') {
+    if (choice == 'AddClient') {
       _showAddClientDialog();
     }
   }
@@ -272,7 +275,7 @@ class _MapsPageState extends State<MapsPage> {
                 _clients.add(Client(
                     name: _clientNameController.text,
                     color: Color(_clientColor.value),
-                    updatedDate: DateTime.now()));
+                    lastUpdated: DateTime.now()));
                 addClientToFirestore(
                     _clientNameController.text, _clientColor.value);
                 Navigator.of(context).pop();
@@ -346,7 +349,8 @@ class _MapsPageState extends State<MapsPage> {
             client: _selectedClient ?? '',
             latitude: double.parse(tempSplitString[0]),
             longitude: double.parse(tempSplitString[1]),
-            updatedDate: DateTime.now()));
+            lastUpdated: DateTime.now(),
+            createdBy: SignInScreenState.currentUser!.email ?? ''));
         _temporaryPinLocation = null;
         _pinNameController.clear();
         _coordsController.clear();
@@ -364,7 +368,8 @@ class _MapsPageState extends State<MapsPage> {
               client: _selectedClient ?? '',
               latitude: _temporaryPinLocation!.latitude,
               longitude: _temporaryPinLocation!.longitude,
-              updatedDate: DateTime.now()),
+              lastUpdated: DateTime.now(),
+              createdBy: SignInScreenState.currentUser!.email ?? ''),
         );
         _temporaryPinLocation = null;
         _pinNameController.clear();
