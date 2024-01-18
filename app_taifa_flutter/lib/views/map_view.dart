@@ -88,6 +88,38 @@ class _MapsPageState extends State<MapsPage> {
     );
   }
 
+  void _showMarkerContextMenu(Pins temp) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return SimpleDialog(
+          title: Text(temp.name),
+          children: [
+            ListTile(
+              title: Text('Client: ${temp.client}'),
+            ),
+            ListTile(
+              leading: Icon(Icons.edit),
+              title: Text('Edit'),
+              onTap: () {
+                // TODO
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete),
+              title: Text('Delete'),
+              onTap: () {
+                // TODO
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _onSearchChanged(String query) {
     _searchQuery = query;
     _updateMarkers();
@@ -291,7 +323,7 @@ class _MapsPageState extends State<MapsPage> {
     _markers.clear();
     setState(() {
       _markers.clear();
-      for (var pinData in _allPins) {
+      for (Pins pinData in _allPins) {
         final String name = pinData.name;
         final double latitude = pinData.latitude;
         final double longitude = pinData.longitude;
@@ -315,7 +347,11 @@ class _MapsPageState extends State<MapsPage> {
                 position: LatLng(latitude, longitude),
                 icon: BitmapDescriptor.defaultMarkerWithHue(
                     _colorToHue(Color(colorValue))),
-                infoWindow: InfoWindow(title: name),
+                infoWindow: InfoWindow(
+                  title: name,
+                  snippet: 'Client: $client',
+                  onTap: () => _showMarkerContextMenu(pinData),
+                ),
               ),
             );
           }

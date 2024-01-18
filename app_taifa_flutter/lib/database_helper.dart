@@ -16,7 +16,7 @@ Future<List<Client>?> loadClients() async {
         .then((QuerySnapshot querySnapshot) {
       querySnapshot.docs.forEach((DocumentSnapshot doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        String name = data['name'];
+        String name = doc.id;
         int colorValue = data['color'];
         final String date = data['lastUpdated'] ?? '';
 
@@ -42,7 +42,8 @@ Future<List<Pins>?> loadPinsFromFirestore() async {
         .then((QuerySnapshot querySnapshot) {
       querySnapshot.docs.forEach((DocumentSnapshot doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        final String name = data['name'] ?? '';
+
+        final String name = doc.id;
         final double latitude = data['latitude'] ?? 0.0;
         final double longitude = data['longitude'] ?? 0.0;
         final String client = data['client'] ?? '';
@@ -111,8 +112,7 @@ Future<void> updateSignedInUser(String email) async {
 }
 
 Future<void> addClientToFirestore(String clientName, int clientColor) async {
-  FirebaseFirestore.instance.collection("clients").add({
-    'name': clientName,
+  FirebaseFirestore.instance.collection("clients").doc(clientName).set({
     'color': clientColor,
     'lastUpdated': DateTime.now().toIso8601String(),
   }).then((_) {
@@ -128,8 +128,7 @@ void addPinToFirestore(
   double latitude,
   double longitude,
 ) {
-  FirebaseFirestore.instance.collection("allPins").add({
-    'name': pinName,
+  FirebaseFirestore.instance.collection("allPins").doc(pinName).set({
     'latitude': latitude,
     'longitude': longitude,
     'client': selectedClient,
