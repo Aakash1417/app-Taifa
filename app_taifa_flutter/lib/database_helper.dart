@@ -136,3 +136,19 @@ void addPinToFirestore(
     'createdBy': SignInScreenState.currentUser?.email
   });
 }
+
+Future<bool> pinExistenceCheck(String pinName) async {
+  try {
+    DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+        .collection("allPins")
+        .doc(pinName)
+        .get();
+    if (userSnapshot.exists) {
+      return true;
+    }
+    return false;
+  } catch (e) {
+    print("error checking pins existance: $pinName");
+  }
+  return false;
+}

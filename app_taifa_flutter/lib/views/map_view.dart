@@ -81,7 +81,9 @@ class _MapsPageState extends State<MapsPage> {
         markers: _markers,
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddPinDialog,
+        onPressed: () async {
+          _showAddPinDialog('', '');
+        },
         child: const Icon(Icons.add),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
@@ -102,15 +104,15 @@ class _MapsPageState extends State<MapsPage> {
               leading: Icon(Icons.edit),
               title: Text('Edit'),
               onTap: () {
-                // TODO
                 Navigator.pop(context);
+                _showAddPinDialog(temp.name, temp.client);
               },
             ),
             ListTile(
               leading: Icon(Icons.delete),
               title: Text('Delete'),
               onTap: () {
-                // TODO
+                // TODO: add confirmation
                 Navigator.pop(context);
               },
             ),
@@ -184,12 +186,21 @@ class _MapsPageState extends State<MapsPage> {
     });
   }
 
-  Future<void> _showAddPinDialog() async {
+  Future<void> _showAddPinDialog(
+      String? existingName, String? existingClient) async {
+    bool addingPin = existingName == '' && existingClient == '';
+    if (!addingPin) {
+      _pinNameController.text = existingName as String;
+      _selectedClient = existingClient as String;
+    } else {
+      _pinNameController.clear();
+      _selectedClient = null;
+    }
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Add Pin'),
+          title: addingPin ? const Text('Add Pin') : const Text('Edit Pin'),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
@@ -240,10 +251,35 @@ class _MapsPageState extends State<MapsPage> {
           actions: <Widget>[
             ElevatedButton(
               child: const Text('Add Pin'),
+              onPressed: () async {
+                String pinName = _pinNameController.text.trim();
+                if (await pinExistenceCheck(pinName)) {
+                  showAlreadyExistsAlert(context, pinName, "pin");
+                } else {
+                  _updatePinFirestore();
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void showAlreadyExistsAlert(BuildContext context, String name, String type) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Alert'),
+          content: Text('$type: $name already exists.'),
+          actions: <Widget>[
+            TextButton(
               onPressed: () {
-                _updatePinFirestore();
                 Navigator.of(context).pop();
               },
+              child: Text('OK'),
             ),
           ],
         );
