@@ -87,7 +87,14 @@ class _MapsPageState extends State<MapsPage> {
               children: [
                 FloatingActionButton(
                   onPressed: () {
-                    updateAddState(false);
+                    final temp = _temporaryPinLocation;
+                    if (temp != null) {
+                      updateAddState(false);
+                      previousPinState[2] =
+                          "${temp.latitude}, ${temp.longitude}";
+                      _showAddPinDialog(
+                          "", "", false, const Text('Add Pin'), true);
+                    }
                   },
                   child: const Icon(Icons.add),
                 ),
@@ -95,7 +102,6 @@ class _MapsPageState extends State<MapsPage> {
                 FloatingActionButton(
                   onPressed: () {
                     updateAddState(false);
-                    print(previousPinState);
                     _showAddPinDialog(
                         "", "", false, const Text('Add Pin'), true);
                   },
@@ -111,6 +117,10 @@ class _MapsPageState extends State<MapsPage> {
   void updateAddState(bool val) {
     setState(() {
       addPinState = val;
+      if (!addPinState) {
+        _temporaryPinLocation = null;
+        _updateMarkers();
+      }
     });
   }
 
@@ -303,11 +313,24 @@ class _MapsPageState extends State<MapsPage> {
               onPressed: () async {
                 String pinName = _pinNameController.text.trim();
                 if (!(await pinExistenceCheck(pinName)) || !addingPin) {
-                  _updatePinFirestore(_pinNameController.text.trim(),
-                      _coordsController.text.trim());
-                  Navigator.of(context).pop();
+                  if (pinName != "") {
+                    if (_selectedClient != null && _selectedClient != "") {
+                      if (validateRegex(_coordsController.text.trim())) {
+                        _updatePinFirestore(_pinNameController.text.trim(),
+                            _coordsController.text.trim());
+                        Navigator.of(context).pop();
+                      } else {
+                        showAlert(context,
+                            "Invalid coordinates! must be of form: lat, long");
+                      }
+                    } else {
+                      showAlert(context, "Invalid client selected");
+                    }
+                  } else {
+                    showAlert(context, "Invalid pin Name");
+                  }
                 } else {
-                  showAlreadyExistsAlert(context, pinName, "pin");
+                  showAlert(context, '$pinName: pin already exists.');
                 }
               },
             ),
@@ -317,13 +340,36 @@ class _MapsPageState extends State<MapsPage> {
     );
   }
 
-  void showAlreadyExistsAlert(BuildContext context, String name, String type) {
+  bool validateRegex(String expression) {
+    if (RegExp(r'^\s*-?\d+(\.\d+)?\s*[ ,]\s*-?\d+(\.\d+)?\s*$')
+        .hasMatch(expression)) {
+      final tempSplitString = expression
+          .split(RegExp(r'\s*,\s*|\s+'))
+          .map((s) => s.trim())
+          .toList();
+      try {
+        double firstCoordinate = double.parse(tempSplitString[0]);
+        double secondCoordinate = double.parse(tempSplitString[1]);
+        if (firstCoordinate >= -90 &&
+            firstCoordinate <= 90 &&
+            secondCoordinate >= -180 &&
+            secondCoordinate < 180) {
+          return true;
+        }
+      } catch (e) {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  void showAlert(BuildContext context, String text) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Alert'),
-          content: Text('$type: $name already exists.'),
+          title: const Text('Alert'),
+          content: Text(text),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -457,8 +503,6 @@ class _MapsPageState extends State<MapsPage> {
             .split(RegExp(r'\s*,\s*|\s+'))
             .map((s) => s.trim())
             .toList();
-        log(tempSplitString[0].toString());
-        log(tempSplitString[1].toString());
 
         addPinToFirestore(
           pinNameText,
@@ -474,25 +518,8 @@ class _MapsPageState extends State<MapsPage> {
             lastUpdated: DateTime.now(),
             createdBy: SignInScreenState.currentUser!.email ?? ''));
         _temporaryPinLocation = null;
-      } else if (_temporaryPinLocation != null) {
-        addPinToFirestore(
-          pinNameText,
-          _selectedClient?.trim(),
-          _temporaryPinLocation!.latitude,
-          _temporaryPinLocation!.longitude,
-        );
-        _allPins.add(
-          Pins(
-              name: pinNameText,
-              client: _selectedClient ?? '',
-              latitude: _temporaryPinLocation!.latitude,
-              longitude: _temporaryPinLocation!.longitude,
-              lastUpdated: DateTime.now(),
-              createdBy: SignInScreenState.currentUser!.email ?? ''),
-        );
-        _temporaryPinLocation = null;
+        _updateMarkers();
       }
-      _updateMarkers();
     }
   }
 
