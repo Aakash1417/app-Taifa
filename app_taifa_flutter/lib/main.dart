@@ -15,29 +15,8 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
-  @override
-  _MyAppState createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  bool isAuthenticated = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Call updateSignedInUser here to ensure it's only called once
-    FirebaseAuth.instance.authStateChanges().listen((User? user) {
-      if (user != null) {
-        SignInScreenState.currentUser = user;
-        updateSignedInUser(user.email.toString() ?? '');
-        isAuthenticated = true;
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,9 +26,21 @@ class _MyAppState extends State<MyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: isAuthenticated
-          ? HomePage(onLogout: () => _navigateToSignIn(context))
-          : SignInScreen(),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            User? user = snapshot.data;
+            if (user != null) {
+              SignInScreenState.currentUser = user;
+              updateSignedInUser(user.email.toString() ?? '');
+            }
+            return HomePage(onLogout: () => _navigateToSignIn(context));
+          } else {
+            return SignInScreen(); // User is not logged in
+          }
+        },
+      ),
     );
   }
 

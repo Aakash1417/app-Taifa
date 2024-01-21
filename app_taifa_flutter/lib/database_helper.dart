@@ -148,7 +148,15 @@ Future<bool> pinExistenceCheck(String pinName) async {
     }
     return false;
   } catch (e) {
-    print("error checking pins existance: $pinName");
+    print("error checking pin existence: $pinName");
   }
   return false;
+}
+
+Future<void> removePinFirebase(String pinName) async {
+  try {
+    FirebaseFirestore.instance.collection("allPins").doc(pinName).delete();
+  } catch (e) {
+    print("error deleting pin: $pinName");
+  }
 }

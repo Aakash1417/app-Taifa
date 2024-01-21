@@ -21,13 +21,12 @@ class _MapsPageState extends State<MapsPage> {
   Set<Marker> _markers = {};
   LatLng? _temporaryPinLocation;
 
-  String? _selectedClient;
   List<Pins> _allPins = [];
   List<String> _selectedClients = [];
   List<Client> _clients = [];
   String _searchQuery = "";
   bool addPinState = false;
-  List<String?> previousPinState = [];
+  List<String?> previousPinState = []; // name, client, coordinates
 
   @override
   void initState() {
@@ -59,19 +58,19 @@ class _MapsPageState extends State<MapsPage> {
                 ),
               ),
               actions: <Widget>[
-                if (SignInScreenState.perms != null &&
-                    SignInScreenState.perms!.contains("AddClient"))
-                  PopupMenuButton<String>(
-                    onSelected: _handleMenuSelection,
-                    itemBuilder: (BuildContext context) {
-                      return {'AddClient', 'AddPin'}.map((String choice) {
-                        return PopupMenuItem<String>(
-                          value: choice,
-                          child: Text(choice),
-                        );
-                      }).toList();
-                    },
-                  ),
+                // if (SignInScreenState.perms != null &&
+                //     SignInScreenState.perms!.contains("AddClient"))
+                PopupMenuButton<String>(
+                  onSelected: _handleMenuSelection,
+                  itemBuilder: (BuildContext context) {
+                    return {'AddClient', 'AddPin'}.map((String choice) {
+                      return PopupMenuItem<String>(
+                        value: choice,
+                        child: Text(choice),
+                      );
+                    }).toList();
+                  },
+                ),
               ],
             ),
       body: GoogleMap(
@@ -92,18 +91,24 @@ class _MapsPageState extends State<MapsPage> {
                       updateAddState(false);
                       previousPinState[2] =
                           "${temp.latitude}, ${temp.longitude}";
-                      _showAddPinDialog(
-                          "", "", false, const Text('Add Pin'), true);
+                      if (previousPinState[3] == '0') {
+                        _showAddPinDialog(const Text('Add Pin'), true, false);
+                      } else {
+                        _showAddPinDialog(const Text('Edit Pin'), true, true);
+                      }
                     }
                   },
                   child: const Icon(Icons.add),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 FloatingActionButton(
                   onPressed: () {
                     updateAddState(false);
-                    _showAddPinDialog(
-                        "", "", false, const Text('Add Pin'), true);
+                    if (previousPinState[3] == '0') {
+                      _showAddPinDialog(const Text('Add Pin'), true, false);
+                    } else {
+                      _showAddPinDialog(const Text('Edit Pin'), true, true);
+                    }
                   },
                   child: const Icon(Icons.cancel),
                 ),
@@ -135,19 +140,24 @@ class _MapsPageState extends State<MapsPage> {
               title: Text('Client: ${temp.client}'),
             ),
             ListTile(
-              leading: Icon(Icons.edit),
-              title: Text('Edit'),
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit'),
               onTap: () {
                 Navigator.pop(context);
-                _showAddPinDialog(temp.name, temp.client, false,
-                    const Text('Edit Pin'), false);
+                previousPinState.add(temp.name);
+                previousPinState.add(temp.client);
+                previousPinState.add("${temp.latitude}, ${temp.longitude}");
+
+                _showAddPinDialog(const Text('Edit Pin'), true, true);
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete),
-              title: Text('Delete'),
+              leading: const Icon(Icons.delete),
+              title: const Text('Delete'),
               onTap: () {
-                // TODO: add confirmation
+                removePinFirebase(temp.name);
+                _allPins.removeWhere((pin) => pin.name == temp.name);
+                _updateMarkers();
                 Navigator.pop(context);
               },
             ),
@@ -205,8 +215,8 @@ class _MapsPageState extends State<MapsPage> {
     if (choice == 'AddClient') {
       _showAddClientDialog();
     } else if (choice == 'AddPin') {
-      updateAddState(true);
-      _showAddPinDialog("", "", true, const Text('Add Pin'), false);
+      previousPinState.clear();
+      _showAddPinDialog(const Text('Add Pin'), false, false);
     }
   }
 
@@ -226,24 +236,19 @@ class _MapsPageState extends State<MapsPage> {
     }
   }
 
-  Future<void> _showAddPinDialog(String? existingName, String? existingClient,
-      bool addingPin, Text titleText, bool restorePreviousState) async {
-    TextEditingController _pinNameController = TextEditingController();
-    TextEditingController _coordsController = TextEditingController();
+  Future<void> _showAddPinDialog(
+      Text titleText, bool restorePreviousState, bool editMode) async {
+    TextEditingController pinNameController = TextEditingController();
+    TextEditingController coordsController = TextEditingController();
+    String? asdfg;
 
     if (restorePreviousState) {
-      _pinNameController.text = previousPinState[0] ?? '';
-      _coordsController.text = previousPinState[2] ?? '';
+      pinNameController.text = previousPinState[0] ?? '';
+      asdfg = previousPinState[1];
+      coordsController.text = previousPinState[2] ?? '';
       previousPinState.clear();
-    } else {
-      if (!addingPin) {
-        _pinNameController.text = existingName as String;
-        _selectedClient = existingClient as String;
-      } else {
-        _selectedClient = null;
-        updateAddState(false);
-      }
     }
+    updateAddState(false);
 
     showDialog(
       context: context,
@@ -254,21 +259,22 @@ class _MapsPageState extends State<MapsPage> {
             child: ListBody(
               children: <Widget>[
                 TextField(
-                  controller: _pinNameController,
+                  readOnly: editMode,
+                  controller: pinNameController,
                   decoration: const InputDecoration(labelText: 'Pin Name'),
                 ),
                 const SizedBox(height: 16.0),
                 DropdownButtonFormField<String>(
-                  value: _selectedClient,
-                  hint: Text(_selectedClient ?? "Select Client"),
+                  value: asdfg,
+                  hint: Text(asdfg ?? "Select Client"),
                   onChanged: (String? newValue) {
                     setState(() {
-                      _selectedClient = newValue;
+                      asdfg = newValue;
                     });
                   },
                   onSaved: (String? newValue) {
                     setState(() {
-                      _selectedClient = newValue;
+                      asdfg = newValue;
                     });
                   },
                   items:
@@ -290,18 +296,19 @@ class _MapsPageState extends State<MapsPage> {
                 ),
                 const SizedBox(height: 16.0),
                 TextField(
-                  controller: _coordsController,
+                  controller: coordsController,
                   decoration: InputDecoration(
                       labelText: 'Coordinates (Optional)',
                       suffixIcon: GestureDetector(
                         onTap: () {
                           updateAddState(true);
-                          previousPinState.add(_pinNameController.text.trim());
-                          previousPinState.add(_selectedClient?.trim());
-                          previousPinState.add(_coordsController.text.trim());
+                          previousPinState.add(pinNameController.text.trim());
+                          previousPinState.add(asdfg?.trim());
+                          previousPinState.add(coordsController.text.trim());
+                          previousPinState.add(editMode ? '1' : '0');
                           Navigator.of(context).pop();
                         },
-                        child: Icon(Icons.touch_app),
+                        child: const Icon(Icons.touch_app),
                       )),
                 ),
               ],
@@ -311,13 +318,13 @@ class _MapsPageState extends State<MapsPage> {
             ElevatedButton(
               child: const Text('Add Pin'),
               onPressed: () async {
-                String pinName = _pinNameController.text.trim();
-                if (!(await pinExistenceCheck(pinName)) || !addingPin) {
+                String pinName = pinNameController.text.trim();
+                if (!(await pinExistenceCheck(pinName)) || editMode) {
                   if (pinName != "") {
-                    if (_selectedClient != null && _selectedClient != "") {
-                      if (validateRegex(_coordsController.text.trim())) {
-                        _updatePinFirestore(_pinNameController.text.trim(),
-                            _coordsController.text.trim());
+                    if (asdfg != null && asdfg != "") {
+                      if (validateRegex(coordsController.text.trim())) {
+                        _updatePinFirestore(pinNameController.text.trim(),
+                            coordsController.text.trim(), asdfg);
                         Navigator.of(context).pop();
                       } else {
                         showAlert(context,
@@ -375,7 +382,7 @@ class _MapsPageState extends State<MapsPage> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('OK'),
+              child: const Text('OK'),
             ),
           ],
         );
@@ -384,8 +391,8 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   Future<void> _showAddClientDialog() async {
-    TextEditingController _clientNameController = TextEditingController();
-    Color _clientColor = Colors.blue;
+    TextEditingController clientNameController = TextEditingController();
+    Color clientColor = Colors.blue;
 
     showDialog(
       context: context,
@@ -396,7 +403,7 @@ class _MapsPageState extends State<MapsPage> {
             child: ListBody(
               children: <Widget>[
                 TextField(
-                  controller: _clientNameController,
+                  controller: clientNameController,
                   decoration: const InputDecoration(labelText: 'Client Name'),
                 ),
                 const SizedBox(height: 16.0),
@@ -409,9 +416,9 @@ class _MapsPageState extends State<MapsPage> {
                           title: const Text('Pick a color!'),
                           content: SingleChildScrollView(
                             child: ColorPicker(
-                              pickerColor: _clientColor,
+                              pickerColor: clientColor,
                               onColorChanged: (Color color) {
-                                _clientColor = color;
+                                clientColor = color;
                               },
                             ),
                           ),
@@ -437,11 +444,11 @@ class _MapsPageState extends State<MapsPage> {
               child: const Text('Add Client'),
               onPressed: () {
                 _clients.add(Client(
-                    name: _clientNameController.text,
-                    color: Color(_clientColor.value),
+                    name: clientNameController.text,
+                    color: Color(clientColor.value),
                     lastUpdated: DateTime.now()));
                 addClientToFirestore(
-                    _clientNameController.text, _clientColor.value);
+                    clientNameController.text, clientColor.value);
                 Navigator.of(context).pop();
               },
             ),
@@ -492,12 +499,11 @@ class _MapsPageState extends State<MapsPage> {
     });
   }
 
-  void _updatePinFirestore(String n, String coords) {
-    final String pinNameText = n;
-    final String coordsText = coords;
+  void _updatePinFirestore(
+      String pinNameText, String coordsText, String? selClient) {
     final regex = RegExp(r'^\s*-?\d+(\.\d+)?\s*[ ,]\s*-?\d+(\.\d+)?\s*$');
 
-    if (pinNameText.isNotEmpty && _selectedClient != null) {
+    if (pinNameText.isNotEmpty && selClient != null) {
       if (regex.hasMatch(coordsText)) {
         final tempSplitString = coordsText
             .split(RegExp(r'\s*,\s*|\s+'))
@@ -506,13 +512,13 @@ class _MapsPageState extends State<MapsPage> {
 
         addPinToFirestore(
           pinNameText,
-          _selectedClient?.trim(),
+          selClient.trim(),
           double.parse(tempSplitString[0]),
           double.parse(tempSplitString[1]),
         );
         _allPins.add(Pins(
             name: pinNameText,
-            client: _selectedClient ?? '',
+            client: selClient,
             latitude: double.parse(tempSplitString[0]),
             longitude: double.parse(tempSplitString[1]),
             lastUpdated: DateTime.now(),
@@ -530,7 +536,6 @@ class _MapsPageState extends State<MapsPage> {
 
   @override
   void dispose() {
-    // _pinNameController.dispose();
     super.dispose();
   }
 }
