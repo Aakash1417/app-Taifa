@@ -28,6 +28,8 @@ class _MapsPageState extends State<MapsPage> {
   bool addPinState = false;
   List<String?> previousPinState = []; // name, client, coordinates
 
+  MapType _currentMapType = MapType.normal;
+
   @override
   void initState() {
     super.initState();
@@ -63,7 +65,8 @@ class _MapsPageState extends State<MapsPage> {
                 PopupMenuButton<String>(
                   onSelected: _handleMenuSelection,
                   itemBuilder: (BuildContext context) {
-                    return {'AddClient', 'AddPin'}.map((String choice) {
+                    return {'AddClient', 'AddPin', "SwitchView"}
+                        .map((String choice) {
                       return PopupMenuItem<String>(
                         value: choice,
                         child: Text(choice),
@@ -80,6 +83,7 @@ class _MapsPageState extends State<MapsPage> {
           zoom: 8.0,
         ),
         markers: _markers,
+        mapType: _currentMapType,
       ),
       floatingActionButton: addPinState
           ? Row(
@@ -217,7 +221,54 @@ class _MapsPageState extends State<MapsPage> {
     } else if (choice == 'AddPin') {
       previousPinState.clear();
       _showAddPinDialog(const Text('Add Pin'), false, false);
+    } else if (choice == 'SwitchView') {
+      switchMapViewMode();
     }
+  }
+
+  void switchMapViewMode() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Map View Mode'),
+          content: Column(
+            children: [
+              const Text('Select Map Type:'),
+              SliderTheme(
+                data: const SliderThemeData(
+                  trackHeight: 4.0,
+                  thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8.0),
+                ),
+                child: Slider(
+                  value: _currentMapType == MapType.normal ? 0.0 : 1.0,
+                  onChanged: (value) {
+                    setState(() {
+                      _currentMapType =
+                          value == 0.0 ? MapType.normal : MapType.satellite;
+                    });
+                  },
+                  min: 0.0,
+                  max: 1.0,
+                  divisions: 1,
+                  label: _currentMapType == MapType.normal
+                      ? 'Normal'
+                      : 'Satellite',
+                ),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _onMapTap(LatLng latLng) {
