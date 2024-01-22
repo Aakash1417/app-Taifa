@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'map_view.dart';
@@ -63,6 +66,20 @@ class HomePage extends StatelessWidget {
                   ],
                 ),
               ),
+              Expanded(
+                child: Column(
+                  children: [
+                    IconButton(
+                      icon: Image.asset('assets/images/QR.png', height: 80),
+                      onPressed: () async {
+                        await DefaultCacheManager().emptyCache(); // not working
+                        exit(0);
+                      },
+                    ),
+                    const Text('Clear cache and restart'),
+                  ],
+                ),
+              ),
             ],
           ),
           const Spacer(), // Add spacing between rows
@@ -100,4 +117,3 @@ class HomePage extends StatelessWidget {
     );
   }
 }
-

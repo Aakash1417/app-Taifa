@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
+import 'database_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,9 +30,12 @@ class MyApp extends StatelessWidget {
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            return HomePage(
-                onLogout: () =>
-                    _navigateToSignIn(context)); // User is logged in
+            User? user = snapshot.data;
+            if (user != null) {
+              SignInScreenState.currentUser = user;
+              updateSignedInUser(user.email.toString() ?? '');
+            }
+            return HomePage(onLogout: () => _navigateToSignIn(context));
           } else {
             return SignInScreen(); // User is not logged in
           }
