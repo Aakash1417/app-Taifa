@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../database_helper.dart';
@@ -43,6 +44,39 @@ class _MapsPageState extends State<MapsPage> {
     });
   }
 
+  Future<Position> getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location service disabled');
+    }
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permission denied!');
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error(
+          'Location permissions are denied forever, cannot request location!');
+    }
+    return await Geolocator.getCurrentPosition();
+  }
+
+  Future<void> showCurrLocation() async {
+    Position temp = await getCurrentLocation();
+    Marker curr = Marker(
+        markerId: const MarkerId('currentLocation'),
+        position: LatLng(temp.latitude.toDouble(), temp.longitude.toDouble()),
+        icon: await BitmapDescriptor.fromAssetImage(
+          const ImageConfiguration(),
+          'assets/images/locationDot.png',
+        ));
+    setState(() {
+      _markers.add(curr);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,14 +110,32 @@ class _MapsPageState extends State<MapsPage> {
                 ),
               ],
             ),
-      body: GoogleMap(
-        onTap: _onMapTap,
-        initialCameraPosition: const CameraPosition(
-          target: LatLng(53.492412, -113.496737), // Initial map position
-          zoom: 8.0,
-        ),
-        markers: _markers,
-        mapType: _currentMapType,
+      body: Stack(
+        children: [
+          GoogleMap(
+            onTap: _onMapTap,
+            initialCameraPosition: const CameraPosition(
+              target: LatLng(53.492412, -113.496737), // Initial map position
+              zoom: 8.0,
+            ),
+            markers: _markers,
+            mapType: _currentMapType,
+          ),
+          Positioned(
+            bottom: 20.0,
+            right: 32.0,
+            child: FloatingActionButton(
+              onPressed: () {
+                // Handle button click to go to current location
+                // implement the logic to move the camera to the current location here
+                print("__________");
+                print(_markers.length);
+                print("__________");
+              },
+              child: const Icon(Icons.my_location),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: addPinState
           ? Row(
@@ -226,37 +278,43 @@ class _MapsPageState extends State<MapsPage> {
     }
   }
 
+  void setMapType(MapType x) {
+    setState(() {
+      _currentMapType = x;
+    });
+  }
+
   void switchMapViewMode() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
+      builder: (BuildContext context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
           title: const Text('Map View Mode'),
-          content: Column(
-            children: [
-              const Text('Select Map Type:'),
-              SliderTheme(
-                data: const SliderThemeData(
-                  trackHeight: 4.0,
-                  thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8.0),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                const Text('Select Map Type:'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Normal'),
+                    Switch(
+                      value: _currentMapType != MapType.normal,
+                      onChanged: (value) {
+                        setState(() {
+                          if (value) {
+                            setMapType(MapType.satellite);
+                          } else {
+                            setMapType(MapType.normal);
+                          }
+                        });
+                      },
+                    ),
+                    const Text('Satellite'),
+                  ],
                 ),
-                child: Slider(
-                  value: _currentMapType == MapType.normal ? 0.0 : 1.0,
-                  onChanged: (value) {
-                    setState(() {
-                      _currentMapType =
-                          value == 0.0 ? MapType.normal : MapType.satellite;
-                    });
-                  },
-                  min: 0.0,
-                  max: 1.0,
-                  divisions: 1,
-                  label: _currentMapType == MapType.normal
-                      ? 'Normal'
-                      : 'Satellite',
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: <Widget>[
             TextButton(
@@ -266,8 +324,8 @@ class _MapsPageState extends State<MapsPage> {
               child: const Text('Close'),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -513,6 +571,7 @@ class _MapsPageState extends State<MapsPage> {
     _markers.clear();
     setState(() {
       _markers.clear();
+      showCurrLocation();
       for (Pins pinData in _allPins) {
         final String name = pinData.name;
         final double latitude = pinData.latitude;
