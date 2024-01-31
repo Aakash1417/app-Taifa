@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../database_helper.dart';
@@ -25,8 +26,11 @@ class _MapsPageState extends State<MapsPage> {
   List<String> _selectedClients = [];
   List<Client> _clients = [];
   String _searchQuery = "";
-  bool addPinState = false;
+  bool _addPinState = false;
   List<String?> previousPinState = []; // name, client, coordinates
+  late GoogleMapController _mapController;
+
+  MapType _currentMapType = MapType.normal;
 
   @override
   void initState() {
@@ -39,12 +43,33 @@ class _MapsPageState extends State<MapsPage> {
       _allPins = castedPins ?? [];
       _updateMarkers();
     });
+    getCurrentLocation().then((value) => {}).catchError((e) => {});
+  }
+
+  Future<void> getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location service disabled');
+    }
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permission denied!');
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error(
+          'Location permissions are denied forever, cannot request location!');
+    }
+    // Position temp = await Geolocator.getCurrentPosition();
+    // _currLocation = LatLng(temp.latitude.toDouble(), temp.longitude.toDouble());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: addPinState
+      appBar: _addPinState
           ? null
           : AppBar(
               title: TextField(
@@ -63,7 +88,8 @@ class _MapsPageState extends State<MapsPage> {
                 PopupMenuButton<String>(
                   onSelected: _handleMenuSelection,
                   itemBuilder: (BuildContext context) {
-                    return {'AddClient', 'AddPin'}.map((String choice) {
+                    return {'AddClient', 'AddPin', "SwitchView"}
+                        .map((String choice) {
                       return PopupMenuItem<String>(
                         value: choice,
                         child: Text(choice),
@@ -73,15 +99,26 @@ class _MapsPageState extends State<MapsPage> {
                 ),
               ],
             ),
-      body: GoogleMap(
-        onTap: _onMapTap,
-        initialCameraPosition: const CameraPosition(
-          target: LatLng(53.492412, -113.496737), // Initial map position
-          zoom: 8.0,
-        ),
-        markers: _markers,
+      body: Stack(
+        children: [
+          GoogleMap(
+            onTap: _onMapTap,
+            onMapCreated: (GoogleMapController contr) {
+              _mapController = contr;
+            },
+            initialCameraPosition: const CameraPosition(
+              target: LatLng(53.492412, -113.496737), // Initial map position
+              zoom: 8.0,
+            ),
+            markers: _markers,
+            mapType: _currentMapType,
+            myLocationEnabled: true,
+            myLocationButtonEnabled: true,
+            padding: EdgeInsets.only(top: 100),
+          ),
+        ],
       ),
-      floatingActionButton: addPinState
+      floatingActionButton: _addPinState
           ? Row(
               children: [
                 FloatingActionButton(
@@ -121,8 +158,8 @@ class _MapsPageState extends State<MapsPage> {
 
   void updateAddState(bool val) {
     setState(() {
-      addPinState = val;
-      if (!addPinState) {
+      _addPinState = val;
+      if (!_addPinState) {
         _temporaryPinLocation = null;
         _updateMarkers();
       }
@@ -217,11 +254,64 @@ class _MapsPageState extends State<MapsPage> {
     } else if (choice == 'AddPin') {
       previousPinState.clear();
       _showAddPinDialog(const Text('Add Pin'), false, false);
+    } else if (choice == 'SwitchView') {
+      switchMapViewMode();
     }
   }
 
+  void setMapType(MapType x) {
+    setState(() {
+      _currentMapType = x;
+    });
+  }
+
+  void switchMapViewMode() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Map View Mode'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                const Text('Select Map Type:'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Normal'),
+                    Switch(
+                      value: _currentMapType != MapType.normal,
+                      onChanged: (value) {
+                        setState(() {
+                          if (value) {
+                            setMapType(MapType.satellite);
+                          } else {
+                            setMapType(MapType.normal);
+                          }
+                        });
+                      },
+                    ),
+                    const Text('Satellite'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _onMapTap(LatLng latLng) {
-    if (addPinState) {
+    if (_addPinState) {
       setState(() {
         _temporaryPinLocation = latLng;
         if (_temporaryPinLocation != null) {
