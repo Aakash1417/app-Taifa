@@ -26,8 +26,9 @@ class _MapsPageState extends State<MapsPage> {
   List<String> _selectedClients = [];
   List<Client> _clients = [];
   String _searchQuery = "";
-  bool addPinState = false;
+  bool _addPinState = false;
   List<String?> previousPinState = []; // name, client, coordinates
+  late GoogleMapController _mapController;
 
   MapType _currentMapType = MapType.normal;
 
@@ -42,9 +43,10 @@ class _MapsPageState extends State<MapsPage> {
       _allPins = castedPins ?? [];
       _updateMarkers();
     });
+    getCurrentLocation().then((value) => {}).catchError((e) => {});
   }
 
-  Future<Position> getCurrentLocation() async {
+  Future<void> getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       return Future.error('Location service disabled');
@@ -60,27 +62,14 @@ class _MapsPageState extends State<MapsPage> {
       return Future.error(
           'Location permissions are denied forever, cannot request location!');
     }
-    return await Geolocator.getCurrentPosition();
-  }
-
-  Future<void> showCurrLocation() async {
-    Position temp = await getCurrentLocation();
-    Marker curr = Marker(
-        markerId: const MarkerId('currentLocation'),
-        position: LatLng(temp.latitude.toDouble(), temp.longitude.toDouble()),
-        icon: await BitmapDescriptor.fromAssetImage(
-          const ImageConfiguration(),
-          'assets/images/locationDot.png',
-        ));
-    setState(() {
-      _markers.add(curr);
-    });
+    // Position temp = await Geolocator.getCurrentPosition();
+    // _currLocation = LatLng(temp.latitude.toDouble(), temp.longitude.toDouble());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: addPinState
+      appBar: _addPinState
           ? null
           : AppBar(
               title: TextField(
@@ -114,30 +103,22 @@ class _MapsPageState extends State<MapsPage> {
         children: [
           GoogleMap(
             onTap: _onMapTap,
+            onMapCreated: (GoogleMapController contr) {
+              _mapController = contr;
+            },
             initialCameraPosition: const CameraPosition(
               target: LatLng(53.492412, -113.496737), // Initial map position
               zoom: 8.0,
             ),
             markers: _markers,
             mapType: _currentMapType,
-          ),
-          Positioned(
-            bottom: 20.0,
-            right: 32.0,
-            child: FloatingActionButton(
-              onPressed: () {
-                // Handle button click to go to current location
-                // implement the logic to move the camera to the current location here
-                print("__________");
-                print(_markers.length);
-                print("__________");
-              },
-              child: const Icon(Icons.my_location),
-            ),
+            myLocationEnabled: true,
+            myLocationButtonEnabled: true,
+            padding: EdgeInsets.only(top: 100),
           ),
         ],
       ),
-      floatingActionButton: addPinState
+      floatingActionButton: _addPinState
           ? Row(
               children: [
                 FloatingActionButton(
@@ -177,8 +158,8 @@ class _MapsPageState extends State<MapsPage> {
 
   void updateAddState(bool val) {
     setState(() {
-      addPinState = val;
-      if (!addPinState) {
+      _addPinState = val;
+      if (!_addPinState) {
         _temporaryPinLocation = null;
         _updateMarkers();
       }
@@ -330,7 +311,7 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   void _onMapTap(LatLng latLng) {
-    if (addPinState) {
+    if (_addPinState) {
       setState(() {
         _temporaryPinLocation = latLng;
         if (_temporaryPinLocation != null) {
@@ -571,7 +552,6 @@ class _MapsPageState extends State<MapsPage> {
     _markers.clear();
     setState(() {
       _markers.clear();
-      showCurrLocation();
       for (Pins pinData in _allPins) {
         final String name = pinData.name;
         final double latitude = pinData.latitude;
