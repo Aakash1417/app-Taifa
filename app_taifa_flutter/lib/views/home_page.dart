@@ -1,8 +1,5 @@
-import 'dart:io';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'map_view.dart';
@@ -11,18 +8,23 @@ class HomePage extends StatelessWidget {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final VoidCallback onLogout;
 
-  // Modify the constructor to require the onLogout parameter
   HomePage({super.key, required this.onLogout});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Main Page'),
+        title: const Text(
+          'Main Page',
+          style: TextStyle(
+            color: Colors.white,
+          ),
+        ),
         backgroundColor: const Color.fromRGBO(132, 17, 17, 1),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
+            color: Colors.white,
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               await _googleSignIn.signOut();
@@ -66,52 +68,37 @@ class HomePage extends StatelessWidget {
                   ],
                 ),
               ),
-              Expanded(
-                child: Column(
-                  children: [
-                    IconButton(
-                      icon: Image.asset('assets/images/QR.png', height: 80),
-                      onPressed: () async {
-                        await DefaultCacheManager().emptyCache(); // not working
-                        exit(0);
-                      },
-                    ),
-                    const Text('Clear cache and restart'),
-                  ],
-                ),
-              ),
             ],
           ),
           const Spacer(), // Add spacing between rows
-          // Row 2 (you can add more rows as needed)
-          Row(
-            children: [
-              Expanded(
-                child: IconButton(
-                  icon: const Icon(Icons.home, size: 40),
-                  onPressed: () async {
-                    // add logic for the third button
-                  },
-                ),
-              ),
-              Expanded(
-                child: IconButton(
-                  icon: const Icon(Icons.account_box, size: 40),
-                  onPressed: () async {
-                    // add logic for the fourth button
-                  },
-                ),
-              ),
-              Expanded(
-                child: IconButton(
-                  icon: const Icon(Icons.settings, size: 40),
-                  onPressed: () async {
-                    // add logic for the fourth button
-                  },
-                ),
-              ),
-            ],
-          ),
+          // Row(
+          //   children: [
+          //     Expanded(
+          //       child: IconButton(
+          //         icon: const Icon(Icons.home, size: 40),
+          //         onPressed: () async {
+          //           // add logic for the third button
+          //         },
+          //       ),
+          //     ),
+          //     Expanded(
+          //       child: IconButton(
+          //         icon: const Icon(Icons.account_box, size: 40),
+          //         onPressed: () async {
+          //           // add logic for the fourth button
+          //         },
+          //       ),
+          //     ),
+          //     Expanded(
+          //       child: IconButton(
+          //         icon: const Icon(Icons.settings, size: 40),
+          //         onPressed: () async {
+          //           // add logic for the fourth button
+          //         },
+          //       ),
+          //     ),
+          //   ],
+          // ),
         ],
       ),
     );

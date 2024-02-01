@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 
 import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +8,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../database_helper.dart';
 import '../objects/Client.dart';
+import '../objects/MapsOptions.dart';
 import '../objects/Pins.dart';
 
 class MapsPage extends StatefulWidget {
@@ -29,6 +29,7 @@ class _MapsPageState extends State<MapsPage> {
   bool _addPinState = false;
   List<String?> previousPinState = []; // name, client, coordinates
   late GoogleMapController _mapController;
+  double _myLocationPadding = 0;
 
   MapType _currentMapType = MapType.normal;
 
@@ -88,11 +89,10 @@ class _MapsPageState extends State<MapsPage> {
                 PopupMenuButton<String>(
                   onSelected: _handleMenuSelection,
                   itemBuilder: (BuildContext context) {
-                    return {'AddClient', 'AddPin', "SwitchView"}
-                        .map((String choice) {
+                    return Options.values.map((Options choice) {
                       return PopupMenuItem<String>(
-                        value: choice,
-                        child: Text(choice),
+                        value: choice.stringValue,
+                        child: Text(choice.stringValue),
                       );
                     }).toList();
                   },
@@ -114,7 +114,7 @@ class _MapsPageState extends State<MapsPage> {
             mapType: _currentMapType,
             myLocationEnabled: true,
             myLocationButtonEnabled: true,
-            padding: EdgeInsets.only(top: 100),
+            padding: EdgeInsets.only(top: _myLocationPadding),
           ),
         ],
       ),
@@ -162,6 +162,9 @@ class _MapsPageState extends State<MapsPage> {
       if (!_addPinState) {
         _temporaryPinLocation = null;
         _updateMarkers();
+        _myLocationPadding = 0;
+      } else {
+        _myLocationPadding = 75;
       }
     });
   }
@@ -211,50 +214,49 @@ class _MapsPageState extends State<MapsPage> {
 
   void _showClientFilterDialog() {
     showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Select Clients'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: _clients.map((client) {
-                return CheckboxListTile(
-                  title: Text(client.name),
-                  value: _selectedClients.contains(client.name),
-                  onChanged: (bool? value) {
-                    setState(() {
-                      if (value == true) {
-                        _selectedClients.add(client.name);
-                      } else {
-                        _selectedClients.remove(client.name);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-          ),
-          actions: <Widget>[
-            ElevatedButton(
-              child: const Text('Done'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _updateMarkers(); // Update markers based on selected clients
-              },
-            ),
-          ],
-        );
-      },
-    );
+        context: context,
+        builder: (BuildContext context) => StatefulBuilder(
+              builder: (context, setState) => AlertDialog(
+                title: const Text('Select Clients'),
+                content: SingleChildScrollView(
+                  child: ListBody(
+                    children: _clients.map((client) {
+                      return CheckboxListTile(
+                        title: Text(client.name),
+                        value: _selectedClients.contains(client.name),
+                        onChanged: (bool? value) {
+                          setState(() {
+                            if (value == true) {
+                              _selectedClients.add(client.name);
+                            } else {
+                              _selectedClients.remove(client.name);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ),
+                actions: <Widget>[
+                  ElevatedButton(
+                    child: const Text('Done'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _updateMarkers(); // Update markers based on selected clients
+                    },
+                  ),
+                ],
+              ),
+            ));
   }
 
   void _handleMenuSelection(String choice) {
-    if (choice == 'AddClient') {
+    if (choice == Options.addClient.stringValue) {
       _showAddClientDialog();
-    } else if (choice == 'AddPin') {
+    } else if (choice == Options.addPin.stringValue) {
       previousPinState.clear();
       _showAddPinDialog(const Text('Add Pin'), false, false);
-    } else if (choice == 'SwitchView') {
+    } else if (choice == Options.switchView.stringValue) {
       switchMapViewMode();
     }
   }
