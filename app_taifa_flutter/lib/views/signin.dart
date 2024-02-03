@@ -25,33 +25,38 @@ class SignInScreenState extends State<SignInScreen> {
     try {
       final GoogleSignInAccount? googleSignInAccount =
           await googleSignIn.signIn();
+      print(googleSignInAccount);
       if (googleSignInAccount != null) {
-        final GoogleSignInAuthentication googleSignInAuthentication =
-            await googleSignInAccount.authentication;
-        final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleSignInAuthentication.accessToken,
-          idToken: googleSignInAuthentication.idToken,
-        );
-
-        final UserCredential authResult =
-            await _auth.signInWithCredential(credential);
-        final User? user = authResult.user;
-
-        if (user != null && user.email!.endsWith('@taifaengineering.com')) {
-          if (!mounted) return; // Check if the widget is still in the tree
-          currentUser = user;
-          updateSignedInUser(user.email.toString());
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (context) =>
-                    HomePage(onLogout: () => _navigateToSignIn(context))),
+        if (googleSignInAccount.email.endsWith('@taifaengineering.com')) {
+          final GoogleSignInAuthentication googleSignInAuthentication =
+              await googleSignInAccount.authentication;
+          final AuthCredential credential = GoogleAuthProvider.credential(
+            accessToken: googleSignInAuthentication.accessToken,
+            idToken: googleSignInAuthentication.idToken,
           );
-        } else {
-          await _auth.signOut(); // Sign out from Firebase
-          await googleSignIn.signOut(); // Sign out from Google
 
-          if (!mounted) return;
+          final UserCredential authResult =
+              await _auth.signInWithCredential(credential);
+          final User? user = authResult.user;
+
+          if (user != null && user.email!.endsWith('@taifaengineering.com')) {
+            if (!mounted) return; // Check if the widget is still in the tree
+            currentUser = user;
+            updateSignedInUser(user.email.toString());
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) =>
+                      HomePage(onLogout: () => _navigateToSignIn(context))),
+            );
+          } else {
+            await _auth.signOut(); // Sign out from Firebase
+
+            if (!mounted) return;
+            _showInvalidDomainDialog(); // Show error dialog
+          }
+        } else {
+          await googleSignIn.signOut(); // Sign out from Google
           _showInvalidDomainDialog(); // Show error dialog
         }
       }
