@@ -4,7 +4,7 @@ import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-
+import 'package:fuzzy/fuzzy.dart';
 import '../database_helper.dart';
 import '../objects/Client.dart';
 import '../objects/Colors.dart';
@@ -30,8 +30,13 @@ class _MapsPageState extends State<MapsPage> {
   List<String?> previousPinState = []; // name, client, coordinates
   late GoogleMapController _mapController;
   double _myLocationPadding = 0;
+  FocusNode _searchFocusNode = FocusNode();
 
   MapType _currentMapType = MapType.normal;
+  TextEditingController _searchFilterController = TextEditingController();
+  List<String> suggestionList = [];
+  List<String> filteredSuggestions = [];
+  bool isSearchActive = false;
 
   @override
   void initState() {
@@ -40,8 +45,11 @@ class _MapsPageState extends State<MapsPage> {
       _clients = castedClients ?? [];
       _updateMarkers();
     });
-    loadPinsFromFirestore().then((List<Pins>? castedPins) {
-      _allPins = castedPins ?? [];
+    loadPinsFromFirestore().then((List<dynamic>? things) {
+      if (things?.length == 2) {
+        _allPins = things?[0] ?? [];
+        suggestionList = things?[1] ?? [];
+      }
       _updateMarkers();
     });
     getCurrentLocation().then((value) => {}).catchError((e) => {});
@@ -74,12 +82,30 @@ class _MapsPageState extends State<MapsPage> {
           ? null
           : AppBar(
               title: TextField(
+                controller: _searchFilterController,
+                focusNode: _searchFocusNode,
                 onChanged: _onSearchChanged,
+                onTap: () {
+                  setState(() {
+                    isSearchActive = true;
+                  });
+                },
                 decoration: InputDecoration(
                   hintText: 'Search Pins',
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    onPressed: _showClientFilterDialog,
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        onPressed: _showClientFilterDialog,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: () {
+                          _updateMarkers();
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -101,21 +127,60 @@ class _MapsPageState extends State<MapsPage> {
             ),
       body: Stack(
         children: [
-          GoogleMap(
-            onTap: _onMapTap,
-            onMapCreated: (GoogleMapController contr) {
-              _mapController = contr;
+          GestureDetector(
+            onTap: () {
+              // Dismiss search and suggestion list when clicking on the map
+              setState(() {
+                isSearchActive = false;
+              });
+              _searchFocusNode.unfocus(); // Unfocus the search field
             },
-            initialCameraPosition: const CameraPosition(
-              target: LatLng(53.492412, -113.496737), // Initial map position
-              zoom: 8.0,
+            child: GoogleMap(
+              onTap: _onMapTap,
+              onMapCreated: (GoogleMapController contr) {
+                _mapController = contr;
+              },
+              initialCameraPosition: const CameraPosition(
+                target: LatLng(53.492412, -113.496737),
+                // Initial map position
+                zoom: 8.0,
+              ),
+              markers: _markers,
+              mapType: _currentMapType,
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+              padding: EdgeInsets.only(top: _myLocationPadding),
             ),
-            markers: _markers,
-            mapType: _currentMapType,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: true,
-            padding: EdgeInsets.only(top: _myLocationPadding),
           ),
+          Visibility(
+            visible: isSearchActive && filteredSuggestions.isNotEmpty,
+            child: Positioned(
+              top: 0,
+              left: 60,
+              right: 60,
+              child: Card(
+                elevation: 4.0,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: filteredSuggestions.length,
+                  itemBuilder: (context, index) {
+                    return Dismissible(
+                      key: Key(filteredSuggestions[index]),
+                      onDismissed: (direction) {
+                        _onSuggestionSelected(filteredSuggestions[index]);
+                      },
+                      child: ListTile(
+                        title: Text(filteredSuggestions[index]),
+                        onTap: () {
+                          _onSuggestionSelected(filteredSuggestions[index]);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          )
         ],
       ),
       floatingActionButton: _addPinState
@@ -154,6 +219,28 @@ class _MapsPageState extends State<MapsPage> {
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
     );
+  }
+
+  void _onSuggestionSelected(String selectedSuggestion) {
+    setState(() {
+      _searchFilterController.text = selectedSuggestion;
+      filteredSuggestions = [];
+    });
+    isSearchActive = false;
+    _searchQuery = selectedSuggestion;
+    _updateMarkers();
+  }
+
+  List<String> getAutofillSuggestions(String input) {
+    final fuz = Fuzzy<String>(
+      suggestionList,
+      options: FuzzyOptions(threshold: 0.3),
+    );
+
+    final results = fuz.search(input);
+    List<String> temp = results.map((result) => result.item).toList();
+
+    return temp.sublist(0, temp.length > 4 ? 4 : temp.length);
   }
 
   void updateAddState(bool val) {
@@ -208,8 +295,11 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   void _onSearchChanged(String query) {
+    isSearchActive = true;
     _searchQuery = query;
-    _updateMarkers();
+    setState(() {
+      filteredSuggestions = getAutofillSuggestions(query);
+    });
   }
 
   void _showClientFilterDialog() {
@@ -313,6 +403,9 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   void _onMapTap(LatLng latLng) {
+    setState(() {
+      isSearchActive = false;
+    });
     if (_addPinState) {
       setState(() {
         _temporaryPinLocation = latLng;
@@ -507,7 +600,7 @@ class _MapsPageState extends State<MapsPage> {
                             builder: (context) {
                               return AlertDialog(
                                 title: const Text('Pick a color!'),
-                                content: Container(
+                                content: SizedBox(
                                   height: 300,
                                   // Adjust the height as needed
                                   child: SingleChildScrollView(
@@ -636,6 +729,7 @@ class _MapsPageState extends State<MapsPage> {
 
   @override
   void dispose() {
+    _searchFocusNode.dispose();
     super.dispose();
   }
 }

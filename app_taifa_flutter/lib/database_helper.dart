@@ -33,8 +33,9 @@ Future<List<Client>?> loadClients() async {
   }
 }
 
-Future<List<Pins>?> loadPinsFromFirestore() async {
+Future<List<dynamic>?> loadPinsFromFirestore() async {
   List<Pins> allPins = [];
+  List<String> allPinsNames = [];
   try {
     await FirebaseFirestore.instance
         .collection("allPins")
@@ -50,6 +51,7 @@ Future<List<Pins>?> loadPinsFromFirestore() async {
         final String date = data['lastUpdated'] ?? '';
         final String createdBy = data['createdBy'] ?? '';
 
+        allPinsNames.add(name);
         allPins.add(Pins(
           name: name,
           client: client,
@@ -61,7 +63,7 @@ Future<List<Pins>?> loadPinsFromFirestore() async {
       });
     });
 
-    return allPins;
+    return [allPins, allPinsNames];
   } catch (e) {
     print("Error loading pins: $e");
     return null;
