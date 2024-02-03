@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../database_helper.dart';
 import '../objects/Client.dart';
+import '../objects/Colors.dart';
 import '../objects/MapsOptions.dart';
 import '../objects/Pins.dart';
 
@@ -21,7 +21,7 @@ class MapsPage extends StatefulWidget {
 class _MapsPageState extends State<MapsPage> {
   Set<Marker> _markers = {};
   LatLng? _temporaryPinLocation;
-
+  List<Color> colorList = getAllColors();
   List<Pins> _allPins = [];
   List<String> _selectedClients = [];
   List<Client> _clients = [];
@@ -488,65 +488,73 @@ class _MapsPageState extends State<MapsPage> {
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add Client'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                TextField(
-                  controller: clientNameController,
-                  decoration: const InputDecoration(labelText: 'Client Name'),
+      builder: (BuildContext context) => StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+                title: const Text('Add Client'),
+                content: SingleChildScrollView(
+                  child: ListBody(
+                    children: <Widget>[
+                      TextField(
+                        controller: clientNameController,
+                        decoration:
+                            const InputDecoration(labelText: 'Client Name'),
+                      ),
+                      const SizedBox(height: 16.0),
+                      ElevatedButton(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) {
+                              return AlertDialog(
+                                title: const Text('Pick a color!'),
+                                content: Container(
+                                  height: 300,
+                                  // Adjust the height as needed
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      children: colorList.map((color) {
+                                        return ListTile(
+                                          title: Text(
+                                              'Color ${colorList.indexOf(color) + 1}'),
+                                          tileColor: color,
+                                          onTap: () {
+                                            setState(() {
+                                              clientColor = color;
+                                            });
+                                            Navigator.of(context).pop();
+                                          },
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: clientColor,
+                        ),
+                        child: const Text('Pick Color'),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16.0),
-                ElevatedButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) {
-                        return AlertDialog(
-                          title: const Text('Pick a color!'),
-                          content: SingleChildScrollView(
-                            child: ColorPicker(
-                              pickerColor: clientColor,
-                              onColorChanged: (Color color) {
-                                clientColor = color;
-                              },
-                            ),
-                          ),
-                          actions: <Widget>[
-                            ElevatedButton(
-                              child: const Text('Got it'),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                  child: const Text('Pick Color'),
-                ),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            ElevatedButton(
-              child: const Text('Add Client'),
-              onPressed: () {
-                _clients.add(Client(
-                    name: clientNameController.text,
-                    color: Color(clientColor.value),
-                    lastUpdated: DateTime.now()));
-                addClientToFirestore(
-                    clientNameController.text, clientColor.value);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
+                actions: <Widget>[
+                  ElevatedButton(
+                    child: const Text('Add Client'),
+                    onPressed: () {
+                      _clients.add(Client(
+                          name: clientNameController.text,
+                          color: Color(clientColor.value),
+                          lastUpdated: DateTime.now()));
+                      addClientToFirestore(
+                          clientNameController.text, clientColor.value);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              )),
     );
   }
 
