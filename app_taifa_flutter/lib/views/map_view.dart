@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:flutter/material.dart';
+import 'package:fuzzy/fuzzy.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:fuzzy/fuzzy.dart';
+
 import '../database_helper.dart';
 import '../objects/Client.dart';
 import '../objects/Colors.dart';
@@ -193,7 +194,7 @@ class _MapsPageState extends State<MapsPage> {
                       updateAddState(false);
                       previousPinState[2] =
                           "${temp.latitude}, ${temp.longitude}";
-                      if (previousPinState[3] == '0') {
+                      if (previousPinState[4] == '0') {
                         _showAddPinDialog(const Text('Add Pin'), true, false);
                       } else {
                         _showAddPinDialog(const Text('Edit Pin'), true, true);
@@ -206,7 +207,7 @@ class _MapsPageState extends State<MapsPage> {
                 FloatingActionButton(
                   onPressed: () {
                     updateAddState(false);
-                    if (previousPinState[3] == '0') {
+                    if (previousPinState[4] == '0') {
                       _showAddPinDialog(const Text('Add Pin'), true, false);
                     } else {
                       _showAddPinDialog(const Text('Edit Pin'), true, true);
@@ -274,6 +275,7 @@ class _MapsPageState extends State<MapsPage> {
                 previousPinState.add(temp.name);
                 previousPinState.add(temp.client);
                 previousPinState.add("${temp.latitude}, ${temp.longitude}");
+                previousPinState.add(temp.description);
 
                 _showAddPinDialog(const Text('Edit Pin'), true, true);
               },
@@ -425,12 +427,14 @@ class _MapsPageState extends State<MapsPage> {
       Text titleText, bool restorePreviousState, bool editMode) async {
     TextEditingController pinNameController = TextEditingController();
     TextEditingController coordsController = TextEditingController();
+    TextEditingController descriptionController = TextEditingController();
     String? asdfg;
 
     if (restorePreviousState) {
       pinNameController.text = previousPinState[0] ?? '';
       asdfg = previousPinState[1];
       coordsController.text = previousPinState[2] ?? '';
+      descriptionController.text = previousPinState[3] ?? '';
       previousPinState.clear();
     }
     updateAddState(false);
@@ -473,7 +477,9 @@ class _MapsPageState extends State<MapsPage> {
                             radius: 10,
                           ),
                           const SizedBox(width: 8),
-                          Text(client.name),
+                          Text(client.name.length > 15
+                              ? '${client.name.substring(0, 15)}...'
+                              : client.name),
                         ],
                       ),
                     );
@@ -483,33 +489,45 @@ class _MapsPageState extends State<MapsPage> {
                 TextField(
                   controller: coordsController,
                   decoration: InputDecoration(
-                      labelText: 'Coordinates (Optional)',
+                      labelText: 'Coordinates',
                       suffixIcon: GestureDetector(
                         onTap: () {
                           updateAddState(true);
                           previousPinState.add(pinNameController.text.trim());
                           previousPinState.add(asdfg?.trim());
                           previousPinState.add(coordsController.text.trim());
+                          previousPinState
+                              .add(descriptionController.text.trim());
                           previousPinState.add(editMode ? '1' : '0');
                           Navigator.of(context).pop();
                         },
                         child: const Icon(Icons.touch_app),
                       )),
                 ),
+                const SizedBox(height: 16.0),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                      labelText: 'Description (Optional)'),
+                ),
               ],
             ),
           ),
           actions: <Widget>[
             ElevatedButton(
-              child: const Text('Add Pin'),
+              child: editMode ? const Text('Save') : const Text('Add Pin'),
               onPressed: () async {
                 String pinName = pinNameController.text.trim();
                 if (!(await pinExistenceCheck(pinName)) || editMode) {
                   if (pinName != "") {
                     if (asdfg != null && asdfg != "") {
                       if (validateRegex(coordsController.text.trim())) {
-                        _updatePinFirestore(pinNameController.text.trim(),
-                            coordsController.text.trim(), asdfg);
+                        _updatePinFirestore(
+                          pinNameController.text.trim(),
+                          coordsController.text.trim(),
+                          asdfg,
+                          descriptionController.text.trim(),
+                        );
                         Navigator.of(context).pop();
                       } else {
                         showAlert(context,
@@ -692,8 +710,8 @@ class _MapsPageState extends State<MapsPage> {
     });
   }
 
-  void _updatePinFirestore(
-      String pinNameText, String coordsText, String? selClient) {
+  void _updatePinFirestore(String pinNameText, String coordsText,
+      String? selClient, String descriptionText) {
     final regex = RegExp(r'^\s*-?\d+(\.\d+)?\s*[ ,]\s*-?\d+(\.\d+)?\s*$');
 
     if (pinNameText.isNotEmpty && selClient != null) {
@@ -708,14 +726,17 @@ class _MapsPageState extends State<MapsPage> {
           selClient.trim(),
           double.parse(tempSplitString[0]),
           double.parse(tempSplitString[1]),
+          descriptionText,
         );
         _allPins.add(Pins(
-            name: pinNameText,
-            client: selClient,
-            latitude: double.parse(tempSplitString[0]),
-            longitude: double.parse(tempSplitString[1]),
-            lastUpdated: DateTime.now(),
-            createdBy: SignInScreenState.currentUser!.email ?? ''));
+          name: pinNameText,
+          client: selClient,
+          latitude: double.parse(tempSplitString[0]),
+          longitude: double.parse(tempSplitString[1]),
+          lastUpdated: DateTime.now(),
+          createdBy: SignInScreenState.currentUser!.email ?? '',
+          description: descriptionText,
+        ));
         _temporaryPinLocation = null;
         _updateMarkers();
       }

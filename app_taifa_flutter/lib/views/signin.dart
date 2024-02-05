@@ -25,7 +25,6 @@ class SignInScreenState extends State<SignInScreen> {
     try {
       final GoogleSignInAccount? googleSignInAccount =
           await googleSignIn.signIn();
-      print(googleSignInAccount);
       if (googleSignInAccount != null) {
         if (googleSignInAccount.email.endsWith('@taifaengineering.com')) {
           final GoogleSignInAuthentication googleSignInAuthentication =
@@ -51,6 +50,7 @@ class SignInScreenState extends State<SignInScreen> {
             );
           } else {
             await _auth.signOut(); // Sign out from Firebase
+            await googleSignIn.signOut(); // Sign out from Google
 
             if (!mounted) return;
             _showInvalidDomainDialog(); // Show error dialog

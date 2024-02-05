@@ -50,6 +50,7 @@ Future<List<dynamic>?> loadPinsFromFirestore() async {
         final String client = data['client'] ?? '';
         final String date = data['lastUpdated'] ?? '';
         final String createdBy = data['createdBy'] ?? '';
+        final String description = data['description'] ?? '';
 
         allPinsNames.add(name);
         allPins.add(Pins(
@@ -59,6 +60,7 @@ Future<List<dynamic>?> loadPinsFromFirestore() async {
           longitude: longitude,
           lastUpdated: DateTime.parse(date),
           createdBy: createdBy,
+          description: description,
         ));
       });
     });
@@ -129,13 +131,15 @@ void addPinToFirestore(
   String? selectedClient,
   double latitude,
   double longitude,
+  String description,
 ) {
   FirebaseFirestore.instance.collection("allPins").doc(pinName).set({
     'latitude': latitude,
     'longitude': longitude,
     'client': selectedClient,
     'lastUpdated': DateTime.now().toIso8601String(),
-    'createdBy': SignInScreenState.currentUser?.email
+    'createdBy': SignInScreenState.currentUser?.email,
+    'description': description,
   });
 }
 

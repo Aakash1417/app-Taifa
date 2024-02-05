@@ -5,6 +5,7 @@ class Pins {
   double longitude;
   DateTime lastUpdated;
   String createdBy;
+  String? description;
 
   Pins({
     required this.name,
@@ -13,5 +14,6 @@ class Pins {
     required this.longitude,
     required this.lastUpdated,
     required this.createdBy,
+    required this.description,
   });
 }
