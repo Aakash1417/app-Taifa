@@ -267,6 +267,18 @@ class _MapsPageState extends State<MapsPage> {
             ListTile(
               title: Text('Client: ${temp.client}'),
             ),
+            Container(
+              constraints: const BoxConstraints(
+                maxHeight: 200,
+              ),
+              child: SingleChildScrollView(
+                child: ListTile(
+                  title: Text(
+                    'Description: ${temp.description}',
+                  ),
+                ),
+              ),
+            ),
             ListTile(
               leading: const Icon(Icons.edit),
               title: const Text('Edit'),
@@ -485,7 +497,6 @@ class _MapsPageState extends State<MapsPage> {
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 16.0),
                 TextField(
                   controller: coordsController,
                   decoration: InputDecoration(
@@ -504,11 +515,16 @@ class _MapsPageState extends State<MapsPage> {
                         child: const Icon(Icons.touch_app),
                       )),
                 ),
-                const SizedBox(height: 16.0),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                      labelText: 'Description (Optional)'),
+                Container(
+                  constraints: const BoxConstraints(
+                    maxHeight: 200,
+                  ),
+                  child: TextField(
+                    controller: descriptionController,
+                    maxLines: null,
+                    decoration: const InputDecoration(
+                        labelText: 'Description (Optional)'),
+                  ),
                 ),
               ],
             ),
