@@ -33,8 +33,9 @@ Future<List<Client>?> loadClients() async {
   }
 }
 
-Future<List<Pins>?> loadPinsFromFirestore() async {
+Future<List<dynamic>?> loadPinsFromFirestore() async {
   List<Pins> allPins = [];
+  List<String> allPinsNames = [];
   try {
     await FirebaseFirestore.instance
         .collection("allPins")
@@ -49,7 +50,9 @@ Future<List<Pins>?> loadPinsFromFirestore() async {
         final String client = data['client'] ?? '';
         final String date = data['lastUpdated'] ?? '';
         final String createdBy = data['createdBy'] ?? '';
+        final String description = data['description'] ?? '';
 
+        allPinsNames.add(name);
         allPins.add(Pins(
           name: name,
           client: client,
@@ -57,11 +60,12 @@ Future<List<Pins>?> loadPinsFromFirestore() async {
           longitude: longitude,
           lastUpdated: DateTime.parse(date),
           createdBy: createdBy,
+          description: description,
         ));
       });
     });
 
-    return allPins;
+    return [allPins, allPinsNames];
   } catch (e) {
     print("Error loading pins: $e");
     return null;
@@ -127,13 +131,15 @@ void addPinToFirestore(
   String? selectedClient,
   double latitude,
   double longitude,
+  String description,
 ) {
   FirebaseFirestore.instance.collection("allPins").doc(pinName).set({
     'latitude': latitude,
     'longitude': longitude,
     'client': selectedClient,
     'lastUpdated': DateTime.now().toIso8601String(),
-    'createdBy': SignInScreenState.currentUser?.email
+    'createdBy': SignInScreenState.currentUser?.email,
+    'description': description,
   });
 }
 

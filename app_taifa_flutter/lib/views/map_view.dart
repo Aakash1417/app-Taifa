@@ -1,14 +1,15 @@
 import 'dart:async';
-import 'dart:developer';
 
 import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:fuzzy/fuzzy.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../database_helper.dart';
 import '../objects/Client.dart';
+import '../objects/Colors.dart';
+import '../objects/MapsOptions.dart';
 import '../objects/Pins.dart';
 
 class MapsPage extends StatefulWidget {
@@ -21,7 +22,7 @@ class MapsPage extends StatefulWidget {
 class _MapsPageState extends State<MapsPage> {
   Set<Marker> _markers = {};
   LatLng? _temporaryPinLocation;
-
+  List<Color> colorList = getAllColors();
   List<Pins> _allPins = [];
   List<String> _selectedClients = [];
   List<Client> _clients = [];
@@ -29,8 +30,14 @@ class _MapsPageState extends State<MapsPage> {
   bool _addPinState = false;
   List<String?> previousPinState = []; // name, client, coordinates
   late GoogleMapController _mapController;
+  double _myLocationPadding = 0;
+  FocusNode _searchFocusNode = FocusNode();
 
   MapType _currentMapType = MapType.normal;
+  TextEditingController _searchFilterController = TextEditingController();
+  List<String> suggestionList = [];
+  List<String> filteredSuggestions = [];
+  bool isSearchActive = false;
 
   @override
   void initState() {
@@ -39,8 +46,11 @@ class _MapsPageState extends State<MapsPage> {
       _clients = castedClients ?? [];
       _updateMarkers();
     });
-    loadPinsFromFirestore().then((List<Pins>? castedPins) {
-      _allPins = castedPins ?? [];
+    loadPinsFromFirestore().then((List<dynamic>? things) {
+      if (things?.length == 2) {
+        _allPins = things?[0] ?? [];
+        suggestionList = things?[1] ?? [];
+      }
       _updateMarkers();
     });
     getCurrentLocation().then((value) => {}).catchError((e) => {});
@@ -73,12 +83,30 @@ class _MapsPageState extends State<MapsPage> {
           ? null
           : AppBar(
               title: TextField(
+                controller: _searchFilterController,
+                focusNode: _searchFocusNode,
                 onChanged: _onSearchChanged,
+                onTap: () {
+                  setState(() {
+                    isSearchActive = true;
+                  });
+                },
                 decoration: InputDecoration(
                   hintText: 'Search Pins',
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    onPressed: _showClientFilterDialog,
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        onPressed: _showClientFilterDialog,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: () {
+                          _updateMarkers();
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -88,11 +116,10 @@ class _MapsPageState extends State<MapsPage> {
                 PopupMenuButton<String>(
                   onSelected: _handleMenuSelection,
                   itemBuilder: (BuildContext context) {
-                    return {'AddClient', 'AddPin', "SwitchView"}
-                        .map((String choice) {
+                    return Options.values.map((Options choice) {
                       return PopupMenuItem<String>(
-                        value: choice,
-                        child: Text(choice),
+                        value: choice.stringValue,
+                        child: Text(choice.stringValue),
                       );
                     }).toList();
                   },
@@ -101,21 +128,60 @@ class _MapsPageState extends State<MapsPage> {
             ),
       body: Stack(
         children: [
-          GoogleMap(
-            onTap: _onMapTap,
-            onMapCreated: (GoogleMapController contr) {
-              _mapController = contr;
+          GestureDetector(
+            onTap: () {
+              // Dismiss search and suggestion list when clicking on the map
+              setState(() {
+                isSearchActive = false;
+              });
+              _searchFocusNode.unfocus(); // Unfocus the search field
             },
-            initialCameraPosition: const CameraPosition(
-              target: LatLng(53.492412, -113.496737), // Initial map position
-              zoom: 8.0,
+            child: GoogleMap(
+              onTap: _onMapTap,
+              onMapCreated: (GoogleMapController contr) {
+                _mapController = contr;
+              },
+              initialCameraPosition: const CameraPosition(
+                target: LatLng(53.492412, -113.496737),
+                // Initial map position
+                zoom: 8.0,
+              ),
+              markers: _markers,
+              mapType: _currentMapType,
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+              padding: EdgeInsets.only(top: _myLocationPadding),
             ),
-            markers: _markers,
-            mapType: _currentMapType,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: true,
-            padding: EdgeInsets.only(top: 100),
           ),
+          Visibility(
+            visible: isSearchActive && filteredSuggestions.isNotEmpty,
+            child: Positioned(
+              top: 0,
+              left: 60,
+              right: 60,
+              child: Card(
+                elevation: 4.0,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: filteredSuggestions.length,
+                  itemBuilder: (context, index) {
+                    return Dismissible(
+                      key: Key(filteredSuggestions[index]),
+                      onDismissed: (direction) {
+                        _onSuggestionSelected(filteredSuggestions[index]);
+                      },
+                      child: ListTile(
+                        title: Text(filteredSuggestions[index]),
+                        onTap: () {
+                          _onSuggestionSelected(filteredSuggestions[index]);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          )
         ],
       ),
       floatingActionButton: _addPinState
@@ -128,7 +194,7 @@ class _MapsPageState extends State<MapsPage> {
                       updateAddState(false);
                       previousPinState[2] =
                           "${temp.latitude}, ${temp.longitude}";
-                      if (previousPinState[3] == '0') {
+                      if (previousPinState[4] == '0') {
                         _showAddPinDialog(const Text('Add Pin'), true, false);
                       } else {
                         _showAddPinDialog(const Text('Edit Pin'), true, true);
@@ -141,7 +207,7 @@ class _MapsPageState extends State<MapsPage> {
                 FloatingActionButton(
                   onPressed: () {
                     updateAddState(false);
-                    if (previousPinState[3] == '0') {
+                    if (previousPinState[4] == '0') {
                       _showAddPinDialog(const Text('Add Pin'), true, false);
                     } else {
                       _showAddPinDialog(const Text('Edit Pin'), true, true);
@@ -156,12 +222,37 @@ class _MapsPageState extends State<MapsPage> {
     );
   }
 
+  void _onSuggestionSelected(String selectedSuggestion) {
+    setState(() {
+      _searchFilterController.text = selectedSuggestion;
+      filteredSuggestions = [];
+    });
+    isSearchActive = false;
+    _searchQuery = selectedSuggestion;
+    _updateMarkers();
+  }
+
+  List<String> getAutofillSuggestions(String input) {
+    final fuz = Fuzzy<String>(
+      suggestionList,
+      options: FuzzyOptions(threshold: 0.3),
+    );
+
+    final results = fuz.search(input);
+    List<String> temp = results.map((result) => result.item).toList();
+
+    return temp.sublist(0, temp.length > 4 ? 4 : temp.length);
+  }
+
   void updateAddState(bool val) {
     setState(() {
       _addPinState = val;
       if (!_addPinState) {
         _temporaryPinLocation = null;
         _updateMarkers();
+        _myLocationPadding = 0;
+      } else {
+        _myLocationPadding = 75;
       }
     });
   }
@@ -176,6 +267,18 @@ class _MapsPageState extends State<MapsPage> {
             ListTile(
               title: Text('Client: ${temp.client}'),
             ),
+            Container(
+              constraints: const BoxConstraints(
+                maxHeight: 200,
+              ),
+              child: SingleChildScrollView(
+                child: ListTile(
+                  title: Text(
+                    'Description: ${temp.description}',
+                  ),
+                ),
+              ),
+            ),
             ListTile(
               leading: const Icon(Icons.edit),
               title: const Text('Edit'),
@@ -184,6 +287,7 @@ class _MapsPageState extends State<MapsPage> {
                 previousPinState.add(temp.name);
                 previousPinState.add(temp.client);
                 previousPinState.add("${temp.latitude}, ${temp.longitude}");
+                previousPinState.add(temp.description);
 
                 _showAddPinDialog(const Text('Edit Pin'), true, true);
               },
@@ -205,56 +309,58 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   void _onSearchChanged(String query) {
+    isSearchActive = true;
     _searchQuery = query;
-    _updateMarkers();
+    setState(() {
+      filteredSuggestions = getAutofillSuggestions(query);
+    });
   }
 
   void _showClientFilterDialog() {
     showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Select Clients'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: _clients.map((client) {
-                return CheckboxListTile(
-                  title: Text(client.name),
-                  value: _selectedClients.contains(client.name),
-                  onChanged: (bool? value) {
-                    setState(() {
-                      if (value == true) {
-                        _selectedClients.add(client.name);
-                      } else {
-                        _selectedClients.remove(client.name);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-          ),
-          actions: <Widget>[
-            ElevatedButton(
-              child: const Text('Done'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _updateMarkers(); // Update markers based on selected clients
-              },
-            ),
-          ],
-        );
-      },
-    );
+        context: context,
+        builder: (BuildContext context) => StatefulBuilder(
+              builder: (context, setState) => AlertDialog(
+                title: const Text('Select Clients'),
+                content: SingleChildScrollView(
+                  child: ListBody(
+                    children: _clients.map((client) {
+                      return CheckboxListTile(
+                        title: Text(client.name),
+                        value: _selectedClients.contains(client.name),
+                        onChanged: (bool? value) {
+                          setState(() {
+                            if (value == true) {
+                              _selectedClients.add(client.name);
+                            } else {
+                              _selectedClients.remove(client.name);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ),
+                actions: <Widget>[
+                  ElevatedButton(
+                    child: const Text('Done'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _updateMarkers(); // Update markers based on selected clients
+                    },
+                  ),
+                ],
+              ),
+            ));
   }
 
   void _handleMenuSelection(String choice) {
-    if (choice == 'AddClient') {
+    if (choice == Options.addClient.stringValue) {
       _showAddClientDialog();
-    } else if (choice == 'AddPin') {
+    } else if (choice == Options.addPin.stringValue) {
       previousPinState.clear();
       _showAddPinDialog(const Text('Add Pin'), false, false);
-    } else if (choice == 'SwitchView') {
+    } else if (choice == Options.switchView.stringValue) {
       switchMapViewMode();
     }
   }
@@ -311,6 +417,9 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   void _onMapTap(LatLng latLng) {
+    setState(() {
+      isSearchActive = false;
+    });
     if (_addPinState) {
       setState(() {
         _temporaryPinLocation = latLng;
@@ -330,12 +439,14 @@ class _MapsPageState extends State<MapsPage> {
       Text titleText, bool restorePreviousState, bool editMode) async {
     TextEditingController pinNameController = TextEditingController();
     TextEditingController coordsController = TextEditingController();
+    TextEditingController descriptionController = TextEditingController();
     String? asdfg;
 
     if (restorePreviousState) {
       pinNameController.text = previousPinState[0] ?? '';
       asdfg = previousPinState[1];
       coordsController.text = previousPinState[2] ?? '';
+      descriptionController.text = previousPinState[3] ?? '';
       previousPinState.clear();
     }
     updateAddState(false);
@@ -378,43 +489,61 @@ class _MapsPageState extends State<MapsPage> {
                             radius: 10,
                           ),
                           const SizedBox(width: 8),
-                          Text(client.name),
+                          Text(client.name.length > 15
+                              ? '${client.name.substring(0, 15)}...'
+                              : client.name),
                         ],
                       ),
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 16.0),
                 TextField(
                   controller: coordsController,
                   decoration: InputDecoration(
-                      labelText: 'Coordinates (Optional)',
+                      labelText: 'Coordinates',
                       suffixIcon: GestureDetector(
                         onTap: () {
                           updateAddState(true);
                           previousPinState.add(pinNameController.text.trim());
                           previousPinState.add(asdfg?.trim());
                           previousPinState.add(coordsController.text.trim());
+                          previousPinState
+                              .add(descriptionController.text.trim());
                           previousPinState.add(editMode ? '1' : '0');
                           Navigator.of(context).pop();
                         },
                         child: const Icon(Icons.touch_app),
                       )),
                 ),
+                Container(
+                  constraints: const BoxConstraints(
+                    maxHeight: 200,
+                  ),
+                  child: TextField(
+                    controller: descriptionController,
+                    maxLines: null,
+                    decoration: const InputDecoration(
+                        labelText: 'Description (Optional)'),
+                  ),
+                ),
               ],
             ),
           ),
           actions: <Widget>[
             ElevatedButton(
-              child: const Text('Add Pin'),
+              child: editMode ? const Text('Save') : const Text('Add Pin'),
               onPressed: () async {
                 String pinName = pinNameController.text.trim();
                 if (!(await pinExistenceCheck(pinName)) || editMode) {
                   if (pinName != "") {
                     if (asdfg != null && asdfg != "") {
                       if (validateRegex(coordsController.text.trim())) {
-                        _updatePinFirestore(pinNameController.text.trim(),
-                            coordsController.text.trim(), asdfg);
+                        _updatePinFirestore(
+                          pinNameController.text.trim(),
+                          coordsController.text.trim(),
+                          asdfg,
+                          descriptionController.text.trim(),
+                        );
                         Navigator.of(context).pop();
                       } else {
                         showAlert(context,
@@ -486,65 +615,73 @@ class _MapsPageState extends State<MapsPage> {
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add Client'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                TextField(
-                  controller: clientNameController,
-                  decoration: const InputDecoration(labelText: 'Client Name'),
+      builder: (BuildContext context) => StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+                title: const Text('Add Client'),
+                content: SingleChildScrollView(
+                  child: ListBody(
+                    children: <Widget>[
+                      TextField(
+                        controller: clientNameController,
+                        decoration:
+                            const InputDecoration(labelText: 'Client Name'),
+                      ),
+                      const SizedBox(height: 16.0),
+                      ElevatedButton(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) {
+                              return AlertDialog(
+                                title: const Text('Pick a color!'),
+                                content: SizedBox(
+                                  height: 300,
+                                  // Adjust the height as needed
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      children: colorList.map((color) {
+                                        return ListTile(
+                                          title: Text(
+                                              'Color ${colorList.indexOf(color) + 1}'),
+                                          tileColor: color,
+                                          onTap: () {
+                                            setState(() {
+                                              clientColor = color;
+                                            });
+                                            Navigator.of(context).pop();
+                                          },
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: clientColor,
+                        ),
+                        child: const Text('Pick Color'),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16.0),
-                ElevatedButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) {
-                        return AlertDialog(
-                          title: const Text('Pick a color!'),
-                          content: SingleChildScrollView(
-                            child: ColorPicker(
-                              pickerColor: clientColor,
-                              onColorChanged: (Color color) {
-                                clientColor = color;
-                              },
-                            ),
-                          ),
-                          actions: <Widget>[
-                            ElevatedButton(
-                              child: const Text('Got it'),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                  child: const Text('Pick Color'),
-                ),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            ElevatedButton(
-              child: const Text('Add Client'),
-              onPressed: () {
-                _clients.add(Client(
-                    name: clientNameController.text,
-                    color: Color(clientColor.value),
-                    lastUpdated: DateTime.now()));
-                addClientToFirestore(
-                    clientNameController.text, clientColor.value);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
+                actions: <Widget>[
+                  ElevatedButton(
+                    child: const Text('Add Client'),
+                    onPressed: () {
+                      _clients.add(Client(
+                          name: clientNameController.text,
+                          color: Color(clientColor.value),
+                          lastUpdated: DateTime.now()));
+                      addClientToFirestore(
+                          clientNameController.text, clientColor.value);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              )),
     );
   }
 
@@ -589,8 +726,8 @@ class _MapsPageState extends State<MapsPage> {
     });
   }
 
-  void _updatePinFirestore(
-      String pinNameText, String coordsText, String? selClient) {
+  void _updatePinFirestore(String pinNameText, String coordsText,
+      String? selClient, String descriptionText) {
     final regex = RegExp(r'^\s*-?\d+(\.\d+)?\s*[ ,]\s*-?\d+(\.\d+)?\s*$');
 
     if (pinNameText.isNotEmpty && selClient != null) {
@@ -605,14 +742,17 @@ class _MapsPageState extends State<MapsPage> {
           selClient.trim(),
           double.parse(tempSplitString[0]),
           double.parse(tempSplitString[1]),
+          descriptionText,
         );
         _allPins.add(Pins(
-            name: pinNameText,
-            client: selClient,
-            latitude: double.parse(tempSplitString[0]),
-            longitude: double.parse(tempSplitString[1]),
-            lastUpdated: DateTime.now(),
-            createdBy: SignInScreenState.currentUser!.email ?? ''));
+          name: pinNameText,
+          client: selClient,
+          latitude: double.parse(tempSplitString[0]),
+          longitude: double.parse(tempSplitString[1]),
+          lastUpdated: DateTime.now(),
+          createdBy: SignInScreenState.currentUser!.email ?? '',
+          description: descriptionText,
+        ));
         _temporaryPinLocation = null;
         _updateMarkers();
       }
@@ -626,6 +766,7 @@ class _MapsPageState extends State<MapsPage> {
 
   @override
   void dispose() {
+    _searchFocusNode.dispose();
     super.dispose();
   }
 }

@@ -26,32 +26,37 @@ class SignInScreenState extends State<SignInScreen> {
       final GoogleSignInAccount? googleSignInAccount =
           await googleSignIn.signIn();
       if (googleSignInAccount != null) {
-        final GoogleSignInAuthentication googleSignInAuthentication =
-            await googleSignInAccount.authentication;
-        final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleSignInAuthentication.accessToken,
-          idToken: googleSignInAuthentication.idToken,
-        );
-
-        final UserCredential authResult =
-            await _auth.signInWithCredential(credential);
-        final User? user = authResult.user;
-
-        if (user != null && user.email!.endsWith('@taifaengineering.com')) {
-          if (!mounted) return; // Check if the widget is still in the tree
-          currentUser = user;
-          updateSignedInUser(user.email.toString());
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (context) =>
-                    HomePage(onLogout: () => _navigateToSignIn(context))),
+        if (googleSignInAccount.email.endsWith('@taifaengineering.com')) {
+          final GoogleSignInAuthentication googleSignInAuthentication =
+              await googleSignInAccount.authentication;
+          final AuthCredential credential = GoogleAuthProvider.credential(
+            accessToken: googleSignInAuthentication.accessToken,
+            idToken: googleSignInAuthentication.idToken,
           );
-        } else {
-          await _auth.signOut(); // Sign out from Firebase
-          await googleSignIn.signOut(); // Sign out from Google
 
-          if (!mounted) return;
+          final UserCredential authResult =
+              await _auth.signInWithCredential(credential);
+          final User? user = authResult.user;
+
+          if (user != null && user.email!.endsWith('@taifaengineering.com')) {
+            if (!mounted) return; // Check if the widget is still in the tree
+            currentUser = user;
+            updateSignedInUser(user.email.toString());
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) =>
+                      HomePage(onLogout: () => _navigateToSignIn(context))),
+            );
+          } else {
+            await _auth.signOut(); // Sign out from Firebase
+            await googleSignIn.signOut(); // Sign out from Google
+
+            if (!mounted) return;
+            _showInvalidDomainDialog(); // Show error dialog
+          }
+        } else {
+          await googleSignIn.signOut(); // Sign out from Google
           _showInvalidDomainDialog(); // Show error dialog
         }
       }
@@ -103,26 +108,26 @@ class SignInScreenState extends State<SignInScreen> {
               'assets/images/logoTaifa.png',
               height: 100,
             ),
-            const SizedBox(height: 20),
-            TextFormField(
-              decoration: const InputDecoration(
-                labelText: 'Username',
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // Add your sign-in logic here
-              },
-              child: const Text('Sign In'),
-            ),
+            // const SizedBox(height: 20),
+            // TextFormField(
+            //   decoration: const InputDecoration(
+            //     labelText: 'Username',
+            //   ),
+            // ),
+            // const SizedBox(height: 20),
+            // TextFormField(
+            //   obscureText: true,
+            //   decoration: const InputDecoration(
+            //     labelText: 'Password',
+            //   ),
+            // ),
+            // const SizedBox(height: 20),
+            // ElevatedButton(
+            //   onPressed: () {
+            //     // Add your sign-in logic here
+            //   },
+            //   child: const Text('Sign In'),
+            // ),
             const SizedBox(height: 20),
             TextButton(
               onPressed: signInWithGoogle,
