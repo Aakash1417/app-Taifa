@@ -1,3 +1,4 @@
+import 'package:app_taifa_flutter/objects/appUser.dart';
 import 'package:app_taifa_flutter/views/home_page.dart';
 import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -35,7 +36,7 @@ class MyApp extends StatelessWidget {
           if (snapshot.hasData) {
             User? user = snapshot.data;
             if (user != null) {
-              SignInScreenState.currentUser = user;
+              AppUser.thisUser = user;
               updateSignedInUser(user.email.toString() ?? '');
             }
             return HomePage(onLogout: () => _navigateToSignIn(context));

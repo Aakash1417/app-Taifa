@@ -11,6 +11,7 @@ import '../objects/Client.dart';
 import '../objects/Colors.dart';
 import '../objects/MapsOptions.dart';
 import '../objects/Pins.dart';
+import '../objects/appUser.dart';
 
 class MapsPage extends StatefulWidget {
   const MapsPage({super.key});
@@ -33,7 +34,7 @@ class _MapsPageState extends State<MapsPage> {
   double _myLocationPadding = 0;
   FocusNode _searchFocusNode = FocusNode();
 
-  MapType _currentMapType = MapType.normal;
+  // MapType _currentMapType = MapType.normal;
   TextEditingController _searchFilterController = TextEditingController();
   List<String> suggestionList = [];
   List<String> filteredSuggestions = [];
@@ -147,7 +148,7 @@ class _MapsPageState extends State<MapsPage> {
                 zoom: 8.0,
               ),
               markers: _markers,
-              mapType: _currentMapType,
+              mapType: AppUser.mapPreference,
               myLocationEnabled: true,
               myLocationButtonEnabled: true,
               padding: EdgeInsets.only(top: _myLocationPadding),
@@ -367,8 +368,9 @@ class _MapsPageState extends State<MapsPage> {
 
   void setMapType(MapType x) {
     setState(() {
-      _currentMapType = x;
+      AppUser.mapPreference = x;
     });
+    updateUserMapPreference(x.name);
   }
 
   void switchMapViewMode() {
@@ -386,7 +388,7 @@ class _MapsPageState extends State<MapsPage> {
                   children: [
                     const Text('Normal'),
                     Switch(
-                      value: _currentMapType != MapType.normal,
+                      value: AppUser.mapPreference != MapType.normal,
                       onChanged: (value) {
                         setState(() {
                           if (value) {
@@ -750,7 +752,7 @@ class _MapsPageState extends State<MapsPage> {
           latitude: double.parse(tempSplitString[0]),
           longitude: double.parse(tempSplitString[1]),
           lastUpdated: DateTime.now(),
-          createdBy: SignInScreenState.currentUser!.email ?? '',
+          createdBy: AppUser.thisUser.email ?? '',
           description: descriptionText,
         ));
         _temporaryPinLocation = null;
