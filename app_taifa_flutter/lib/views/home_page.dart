@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../api/sheets/equipmentSheets.dart';
 import 'map_view.dart';
@@ -93,7 +94,8 @@ class _HomePageState extends State<HomePage> {
             children: [
               Expanded(
                 child: IconButton(
-                  icon: Image.asset('assets/images/equipment_logo.png', height: 90),
+                  icon: Image.asset('assets/images/equipment_logo.png',
+                      height: 90),
                   onPressed: () {
                     // go to sheets
                   },
@@ -101,6 +103,26 @@ class _HomePageState extends State<HomePage> {
               ),
               const Text(
                 'Calibrator',
+              ),
+            ],
+          ),
+          Column(
+            children: [
+              Expanded(
+                child: IconButton(
+                  icon: Image.asset('assets/images/equipment_logo.png',
+                      height: 90),
+                  onPressed: () async {
+                    final Uri feedbackFormUrl =
+                        Uri.parse('https://flutter.dev');
+                    if (!await launchUrl(feedbackFormUrl)) {
+                      throw Exception('Could not launch $feedbackFormUrl');
+                    }
+                  },
+                ),
+              ),
+              const Text(
+                'Report Bug',
               ),
             ],
           ),

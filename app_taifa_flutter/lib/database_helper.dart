@@ -41,6 +41,7 @@ Future<List<dynamic>?> loadPinsFromFirestore() async {
   try {
     await FirebaseFirestore.instance
         .collection("allPins")
+        .where("isActive", isEqualTo: true)
         .get()
         .then((QuerySnapshot querySnapshot) {
       querySnapshot.docs.forEach((DocumentSnapshot doc) {
@@ -184,9 +185,12 @@ Future<bool> pinExistenceCheck(String pinName) async {
   return false;
 }
 
-Future<void> removePinFirebase(String pinName) async {
+Future<void> softDeletePinFirebase(String pinName) async {
   try {
-    FirebaseFirestore.instance.collection("allPins").doc(pinName).delete();
+    FirebaseFirestore.instance
+        .collection("allPins")
+        .doc(pinName)
+        .update({'isActive': false});
   } catch (e) {
     print("error deleting pin: $pinName");
   }

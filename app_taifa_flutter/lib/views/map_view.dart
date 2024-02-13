@@ -297,9 +297,42 @@ class _MapsPageState extends State<MapsPage> {
               leading: const Icon(Icons.delete),
               title: const Text('Delete'),
               onTap: () {
-                removePinFirebase(temp.name);
-                _allPins.removeWhere((pin) => pin.name == temp.name);
+                _showDeleteConfirmationDialog(context, temp.name);
+                // softDeletePinFirebase(temp.name);
+                // _allPins.removeWhere((pin) => pin.name == temp.name);
+                // _updateMarkers();
+                // Navigator.pop(context);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, String pinName) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Confirm Delete"),
+          content: const Text("Are you sure you want to delete this item?"),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("No"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text("Yes"),
+              onPressed: () {
+                softDeletePinFirebase(pinName);
+                _allPins.removeWhere((pin) => pin.name == pinName);
                 _updateMarkers();
+                // Close the dialog
+                Navigator.of(context).pop();
+                // Close the list tile context
                 Navigator.pop(context);
               },
             ),
