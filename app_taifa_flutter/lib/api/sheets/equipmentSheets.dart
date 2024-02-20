@@ -21,7 +21,8 @@ class EquipmentSheetsApi {
 
   static Future init() async {
     final spreadsheet = await _gsheets.spreadsheet(_spreadSheetId!);
-    _equipmentSheet = await _getWorkSheet(spreadsheet, title: 'Sheet1');
+    _equipmentSheet =
+        await _getWorkSheet(spreadsheet, title: 'Latest Equipment List');
     get_data();
   }
 
@@ -32,6 +33,11 @@ class EquipmentSheetsApi {
     } catch (e) {
       return spreadsheet.worksheetByTitle(title)!;
     }
+  }
+
+  static Future<List<List<Cell>>?> fetchAllRows() async {
+    List<List<Cell>>? allRows = await _equipmentSheet?.cells.allRows();
+    return allRows;
   }
 
   static Future<void> get_data() async {

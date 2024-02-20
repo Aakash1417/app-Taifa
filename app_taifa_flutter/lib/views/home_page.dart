@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api/sheets/equipmentSheets.dart';
+import 'equipment_view.dart';
 import 'map_view.dart';
 
 class HomePage extends StatefulWidget {
@@ -63,8 +64,7 @@ class _HomePageState extends State<HomePage> {
               Expanded(
                 child: IconButton(
                   icon: Image.asset('assets/images/maps.png', height: 90),
-                  onPressed: () async {
-                    // Navigate to MapsPage when the button is pressed
+                  onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => MapsPage()),
@@ -74,6 +74,26 @@ class _HomePageState extends State<HomePage> {
               ),
               const Text(
                 'Maps',
+              ),
+            ],
+          ),
+          Column(
+            children: [
+              Expanded(
+                child: IconButton(
+                  icon: Image.asset('assets/images/equipment_logo.png',
+                      height: 90),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const CalibratorPage()),
+                    );
+                  },
+                ),
+              ),
+              const Text(
+                'Calibrator',
               ),
             ],
           ),
@@ -94,23 +114,7 @@ class _HomePageState extends State<HomePage> {
             children: [
               Expanded(
                 child: IconButton(
-                  icon: Image.asset('assets/images/equipment_logo.png',
-                      height: 90),
-                  onPressed: () {
-                    // go to sheets
-                  },
-                ),
-              ),
-              const Text(
-                'Calibrator',
-              ),
-            ],
-          ),
-          Column(
-            children: [
-              Expanded(
-                child: IconButton(
-                  icon: Image.asset('assets/images/equipment_logo.png',
+                  icon: Image.asset('assets/images/feedbackIcon.png',
                       height: 90),
                   onPressed: () async {
                     final Uri feedbackFormUrl =
