@@ -1,9 +1,12 @@
+import 'package:app_taifa_flutter/views/admin_page.dart';
+import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api/sheets/equipmentSheets.dart';
+import '../objects/Constants.dart';
 import 'equipment_view.dart';
 import 'map_view.dart';
 
@@ -114,8 +117,8 @@ class _HomePageState extends State<HomePage> {
             children: [
               Expanded(
                 child: IconButton(
-                  icon: Image.asset('assets/images/feedbackIcon.png',
-                      height: 90),
+                  icon:
+                      Image.asset('assets/images/feedbackIcon.png', height: 90),
                   onPressed: () async {
                     final Uri feedbackFormUrl =
                         Uri.parse('https://flutter.dev');
@@ -130,6 +133,26 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
           ),
+          if (SignInScreenState.role == Roles.admin.name)
+            Column(
+              children: [
+                Expanded(
+                  child: IconButton(
+                    icon:
+                        Image.asset('assets/images/admin_icon.png', height: 90),
+                    onPressed: () async {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AdminPage()),
+                      );
+                    },
+                  ),
+                ),
+                const Text(
+                  'Admin',
+                ),
+              ],
+            ),
         ],
       ),
     );
