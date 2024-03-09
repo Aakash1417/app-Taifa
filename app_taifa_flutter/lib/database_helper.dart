@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'objects/Client.dart';
 import 'objects/Pins.dart';
+import 'objects/appUser.dart';
 
 Future<List<Client>?> loadClients() async {
   List<Client> tempList = [];
@@ -39,6 +41,7 @@ Future<List<dynamic>?> loadPinsFromFirestore() async {
   try {
     await FirebaseFirestore.instance
         .collection("allPins")
+        .where("isActive", isEqualTo: true)
         .get()
         .then((QuerySnapshot querySnapshot) {
       querySnapshot.docs.forEach((DocumentSnapshot doc) {
@@ -72,11 +75,26 @@ Future<List<dynamic>?> loadPinsFromFirestore() async {
   }
 }
 
+Future<void> updateUserMapPreference(String value) async {
+  final CollectionReference usersCollection =
+      FirebaseFirestore.instance.collection('users');
+  final String usrEmail = (AppUser.thisUser.email) as String;
+  try {
+    DocumentSnapshot userSnapshot = await usersCollection.doc(usrEmail).get();
+    if (userSnapshot.exists) {
+      await usersCollection.doc(usrEmail).update({
+        "mapPreference": value,
+      });
+    }
+  } catch (e) {}
+}
+
 Future<void> updateSignedInUser(String email) async {
   // checks if the user has already logged in to app, if the user already exists then update their last signed in date. if they don't already exist then create their info with this email and set intial role to be employee. create a enum for roles, for employee and admin
   final CollectionReference usersCollection =
       FirebaseFirestore.instance.collection('users');
   String role = '';
+  String mapTypeName = '';
   try {
     DocumentSnapshot userSnapshot = await usersCollection.doc(email).get();
     if (userSnapshot.exists) {
@@ -102,12 +120,20 @@ Future<void> updateSignedInUser(String email) async {
           }
         }
       }
+      mapTypeName = doc['mapPreference'] ?? '';
+      switch (mapTypeName) {
+        case 'normal':
+          AppUser.mapPreference = MapType.normal;
+        case 'satellite':
+          AppUser.mapPreference = MapType.satellite;
+      }
     } else {
       // User doesn't exist, create new user with initial role of employee
       await usersCollection.doc(email).set({
         'email': email,
         'role': 'employee',
         'lastSignIn': DateTime.now().toIso8601String(),
+        "mapPreference": 'normal'
       });
     }
   } catch (error) {
@@ -138,7 +164,7 @@ void addPinToFirestore(
     'longitude': longitude,
     'client': selectedClient,
     'lastUpdated': DateTime.now().toIso8601String(),
-    'createdBy': SignInScreenState.currentUser?.email,
+    'createdBy': AppUser.thisUser.email,
     'description': description,
   });
 }
@@ -159,9 +185,12 @@ Future<bool> pinExistenceCheck(String pinName) async {
   return false;
 }
 
-Future<void> removePinFirebase(String pinName) async {
+Future<void> softDeletePinFirebase(String pinName) async {
   try {
-    FirebaseFirestore.instance.collection("allPins").doc(pinName).delete();
+    FirebaseFirestore.instance
+        .collection("allPins")
+        .doc(pinName)
+        .update({'isActive': false});
   } catch (e) {
     print("error deleting pin: $pinName");
   }

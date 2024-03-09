@@ -1,8 +1,10 @@
+import 'package:app_taifa_flutter/objects/appUser.dart';
 import 'package:app_taifa_flutter/views/home_page.dart';
 import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'firebase_options.dart';
 import 'database_helper.dart';
@@ -12,6 +14,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await dotenv.load();
+
   runApp(const MyApp());
 }
 
@@ -32,7 +36,7 @@ class MyApp extends StatelessWidget {
           if (snapshot.hasData) {
             User? user = snapshot.data;
             if (user != null) {
-              SignInScreenState.currentUser = user;
+              AppUser.thisUser = user;
               updateSignedInUser(user.email.toString() ?? '');
             }
             return HomePage(onLogout: () => _navigateToSignIn(context));

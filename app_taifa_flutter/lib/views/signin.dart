@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../database_helper.dart';
+import '../objects/appUser.dart';
 import 'home_page.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -17,7 +18,6 @@ class SignInScreenState extends State<SignInScreen> {
   final GoogleSignIn googleSignIn = GoogleSignIn(
       clientId:
           "95581424221-knrsei9i3lkm0ahpvd3rkqijsp1s67ad.apps.googleusercontent.com");
-  static User? currentUser;
   static String? role;
   static List<String>? perms;
 
@@ -40,7 +40,7 @@ class SignInScreenState extends State<SignInScreen> {
 
           if (user != null && user.email!.endsWith('@taifaengineering.com')) {
             if (!mounted) return; // Check if the widget is still in the tree
-            currentUser = user;
+            AppUser.thisUser = user;
             updateSignedInUser(user.email.toString());
             Navigator.pushReplacement(
               context,

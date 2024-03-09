@@ -1,14 +1,34 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../api/sheets/equipmentSheets.dart';
+import 'equipment_view.dart';
 import 'map_view.dart';
 
-class HomePage extends StatelessWidget {
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final VoidCallback onLogout;
+class HomePage extends StatefulWidget {
+  late final VoidCallback onLogout;
 
   HomePage({super.key, required this.onLogout});
+
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late final GoogleSignIn _googleSignIn;
+
+  @override
+  void initState() {
+    super.initState();
+    _googleSignIn = GoogleSignIn();
+    EquipmentSheetsApi.init().then((value) {
+      print("asd");
+    }).catchError((onError) {
+      print(onError);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,77 +48,88 @@ class HomePage extends StatelessWidget {
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               await _googleSignIn.signOut();
-              onLogout();
+              widget.onLogout();
             },
           ),
         ],
       ),
-      body: Column(
+      body: GridView.count(
+        crossAxisCount: 2,
+        crossAxisSpacing: 70.0,
+        mainAxisSpacing: 30.0,
+        padding: const EdgeInsets.only(left: 50, right: 50),
         children: [
-          // Row 1
-          Row(
+          Column(
             children: [
               Expanded(
-                child: Column(
-                  children: [
-                    IconButton(
-                      icon: Image.asset('assets/images/maps.png', height: 80),
-                      onPressed: () async {
-                        // Navigate to MapsPage when the button is pressed
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => MapsPage()),
-                        );
-                      },
-                    ),
-                    const Text('Maps'),
-                  ],
+                child: IconButton(
+                  icon: Image.asset('assets/images/maps.png', height: 90),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MapsPage()),
+                    );
+                  },
                 ),
               ),
-              Expanded(
-                child: Column(
-                  children: [
-                    IconButton(
-                      icon: Image.asset('assets/images/QR.png', height: 80),
-                      onPressed: () async {
-                        // go to QR view
-                      },
-                    ),
-                    const Text('QR Code'),
-                  ],
-                ),
+              const Text(
+                'Maps',
               ),
             ],
           ),
-          const Spacer(), // Add spacing between rows
-          // Row(
-          //   children: [
-          //     Expanded(
-          //       child: IconButton(
-          //         icon: const Icon(Icons.home, size: 40),
-          //         onPressed: () async {
-          //           // add logic for the third button
-          //         },
-          //       ),
-          //     ),
-          //     Expanded(
-          //       child: IconButton(
-          //         icon: const Icon(Icons.account_box, size: 40),
-          //         onPressed: () async {
-          //           // add logic for the fourth button
-          //         },
-          //       ),
-          //     ),
-          //     Expanded(
-          //       child: IconButton(
-          //         icon: const Icon(Icons.settings, size: 40),
-          //         onPressed: () async {
-          //           // add logic for the fourth button
-          //         },
-          //       ),
-          //     ),
-          //   ],
-          // ),
+          Column(
+            children: [
+              Expanded(
+                child: IconButton(
+                  icon: Image.asset('assets/images/equipment_logo.png',
+                      height: 90),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const CalibratorPage()),
+                    );
+                  },
+                ),
+              ),
+              const Text(
+                'Calibrator',
+              ),
+            ],
+          ),
+          Column(
+            children: [
+              Expanded(
+                child: IconButton(
+                  icon: Image.asset('assets/images/QR.png', height: 90),
+                  onPressed: () {
+                    // go to QR view
+                  },
+                ),
+              ),
+              const Text('QR Code'),
+            ],
+          ),
+          Column(
+            children: [
+              Expanded(
+                child: IconButton(
+                  icon: Image.asset('assets/images/feedbackIcon.png',
+                      height: 90),
+                  onPressed: () async {
+                    final Uri feedbackFormUrl =
+                        Uri.parse('https://flutter.dev');
+                    if (!await launchUrl(feedbackFormUrl)) {
+                      throw Exception('Could not launch $feedbackFormUrl');
+                    }
+                  },
+                ),
+              ),
+              const Text(
+                'Report Bug',
+              ),
+            ],
+          ),
         ],
       ),
     );
