@@ -1,5 +1,4 @@
 import 'package:app_taifa_flutter/views/admin_page.dart';
-import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -7,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../api/sheets/equipmentSheets.dart';
 import '../objects/Constants.dart';
+import '../objects/appUser.dart';
 import 'equipment_view.dart';
 import 'map_view.dart';
 
@@ -26,11 +26,11 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _googleSignIn = GoogleSignIn();
-    EquipmentSheetsApi.init().then((value) {
-      print("asd");
-    }).catchError((onError) {
-      print(onError);
-    });
+    // EquipmentSheetsApi.init().then((value) {
+    //   print("asd");
+    // }).catchError((onError) {
+    //   print(onError);
+    // });
   }
 
   @override
@@ -133,7 +133,8 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
           ),
-          if (SignInScreenState.role == Roles.admin.name)
+          // Admin page only works when online
+          if (AppUser.role == Roles.admin.name)
             Column(
               children: [
                 Expanded(

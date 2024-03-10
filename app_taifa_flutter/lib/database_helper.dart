@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -105,7 +104,7 @@ Future<void> updateSignedInUser(String email) async {
       Map<String, dynamic> doc = userSnapshot.data() as Map<String, dynamic>;
       role = doc['role'] ?? '';
       if (role != '') {
-        SignInScreenState.role = role;
+        AppUser.role = role;
         // getting current user permissions
         var documentSnapshot = await FirebaseFirestore.instance
             .collection('roles')
@@ -116,7 +115,7 @@ Future<void> updateSignedInUser(String email) async {
           if (dynamicArray != null && dynamicArray.isNotEmpty) {
             List<String>? stringArray =
                 dynamicArray.cast<String>(); // Explicit cast
-            SignInScreenState.perms = stringArray;
+            AppUser.perms = stringArray;
           }
         }
       }
@@ -195,3 +194,5 @@ Future<void> softDeletePinFirebase(String pinName) async {
     print("error deleting pin: $pinName");
   }
 }
+
+

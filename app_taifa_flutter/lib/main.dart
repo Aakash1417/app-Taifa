@@ -37,11 +37,11 @@ class MyApp extends StatelessWidget {
             User? user = snapshot.data;
             if (user != null) {
               AppUser.thisUser = user;
-              updateSignedInUser(user.email.toString() ?? '');
+              updateSignedInUser(user.email.toString() ?? '').then((_) {});
             }
             return HomePage(onLogout: () => _navigateToSignIn(context));
           } else {
-            return SignInScreen(); // User is not logged in
+            return const SignInScreen(); // User is not logged in
           }
         },
       ),
