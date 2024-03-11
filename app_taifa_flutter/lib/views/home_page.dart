@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../api/sheets/equipmentSheets.dart';
 import '../objects/Constants.dart';
 import '../objects/appUser.dart';
 import 'equipment_view.dart';
@@ -26,11 +25,16 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _googleSignIn = GoogleSignIn();
+    AppUser.onRoleChange = _onRoleChange;
     // EquipmentSheetsApi.init().then((value) {
     //   print("asd");
     // }).catchError((onError) {
     //   print(onError);
     // });
+  }
+
+  void _onRoleChange() {
+    setState(() {});
   }
 
   @override

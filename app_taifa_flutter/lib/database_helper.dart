@@ -104,7 +104,7 @@ Future<void> updateSignedInUser(String email) async {
       Map<String, dynamic> doc = userSnapshot.data() as Map<String, dynamic>;
       role = doc['role'] ?? '';
       if (role != '') {
-        AppUser.role = role;
+        AppUser.setRole(role);
         // getting current user permissions
         var documentSnapshot = await FirebaseFirestore.instance
             .collection('roles')
@@ -194,5 +194,3 @@ Future<void> softDeletePinFirebase(String pinName) async {
     print("error deleting pin: $pinName");
   }
 }
-
-
