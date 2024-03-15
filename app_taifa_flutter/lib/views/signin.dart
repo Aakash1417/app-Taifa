@@ -18,8 +18,6 @@ class SignInScreenState extends State<SignInScreen> {
   final GoogleSignIn googleSignIn = GoogleSignIn(
       clientId:
           "95581424221-knrsei9i3lkm0ahpvd3rkqijsp1s67ad.apps.googleusercontent.com");
-  static String? role;
-  static List<String>? perms;
 
   Future<void> signInWithGoogle() async {
     try {

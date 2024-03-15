@@ -6,15 +6,15 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import 'firebase_options.dart';
 import 'database_helper.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await dotenv.load();
+  // await dotenv.load();
 
   runApp(const MyApp());
 }
@@ -37,11 +37,11 @@ class MyApp extends StatelessWidget {
             User? user = snapshot.data;
             if (user != null) {
               AppUser.thisUser = user;
-              updateSignedInUser(user.email.toString() ?? '');
+              updateSignedInUser(user.email.toString() ?? '').then((_) {});
             }
             return HomePage(onLogout: () => _navigateToSignIn(context));
           } else {
-            return SignInScreen(); // User is not logged in
+            return const SignInScreen(); // User is not logged in
           }
         },
       ),
