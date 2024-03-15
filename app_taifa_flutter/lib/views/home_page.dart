@@ -91,11 +91,11 @@ class _HomePageState extends State<HomePage> {
                   icon: Image.asset('assets/images/equipment_logo.png',
                       height: 90),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const CalibratorPage()),
-                    );
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //       builder: (context) => const CalibratorPage()),
+                    // );
                   },
                 ),
               ),
