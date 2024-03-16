@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io' as io;
 import 'dart:typed_data';
-
+import 'package:archive/archive.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -46,6 +46,7 @@ class _UploadDataPageState extends State<UploadDataPage> {
   }
 
   void _processCSVData(List<List<dynamic>> csvData) async {
+    final archive = Archive();
     for (var row in csvData) {
       // Assume the first column contains the ID
       String id = row[0].toString();
@@ -71,32 +72,50 @@ class _UploadDataPageState extends State<UploadDataPage> {
           },
         ),
       );
-      // works till here for web and mobile
-      await _savePdfFile(pdf, 'QR_Code_$id.pdf');
+
+      // Save the PDF to a byte array
+      final pdfBytes = await pdf.save();
+      final fileName = 'QR_Code_$id.pdf';
+
+      // Add the PDF to the zip archive
+      archive.addFile(ArchiveFile(fileName, pdfBytes.length, pdfBytes));
     }
+    await _saveZipFile(archive, 'sdasd.zip');
   }
 
-// for android, and ios maybe?
-  Future<void> _savePdfFile(pw.Document pdf, String fileName) async {
+  Future<void> _saveZipFile(Archive archiveDoc, String fileName) async {
     if (kIsWeb) {
       // For web
-      Uint8List bytes = await pdf.save();
-      html.AnchorElement(
-          href:
-              "data:application/octet-stream;charset=utf-16le;base64,${base64.encode(bytes)}")
-        ..setAttribute("download", fileName)
-        ..click();
-      print('PDF saved: $fileName web');
-    } else {
-      // For mobile
-      final directory = (await getExternalStorageDirectory())?.path ?? '';
-      final filePath = '$directory/$fileName';
-      final file = io.File(filePath);
-      await file.writeAsBytes(await pdf.save(), flush: true);
-      OpenFile.open(filePath);
-      // Print the file path for debugging purposes
-      print('PDF saved: $filePath');
+      final zipBytes = ZipEncoder().encode(archiveDoc);
+      if(zipBytes!=null){
+        final base64Zip = base64.encode(zipBytes!);
+        final href =
+            'data:application/octet-stream;charset=utf-16le;base64,$base64Zip';
+        final anchor = html.AnchorElement(href: href)
+          ..setAttribute('download', 'archive.zip')
+          ..click();
+        print('Zip archive downloaded');
+      }
     }
+    // if (kIsWeb) {
+    //   // For web
+    //   Uint8List bytes = await pdf.save();
+    //   html.AnchorElement(
+    //       href:
+    //           "data:application/octet-stream;charset=utf-16le;base64,${base64.encode(bytes)}")
+    //     ..setAttribute("download", fileName)
+    //     ..click();
+    //   print('PDF saved: $fileName web');
+    // } else {
+    //   // For mobile
+    //   final directory = (await getExternalStorageDirectory())?.path ?? '';
+    //   final filePath = '$directory/$fileName';
+    //   final file = io.File(filePath);
+    //   await file.writeAsBytes(await pdf.save(), flush: true);
+    //   OpenFile.open(filePath);
+    //   // Print the file path for debugging purposes
+    //   print('PDF saved: $filePath');
+    // }
   }
 
   @override
