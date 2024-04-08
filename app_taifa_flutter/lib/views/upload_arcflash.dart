@@ -1,16 +1,18 @@
 import 'dart:convert';
 import 'dart:io' as io;
 import 'dart:typed_data';
+
+import 'package:app_taifa_flutter/objects/ArcFlashData.dart';
 import 'package:archive/archive.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:open_file/open_file.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:universal_html/html.dart' as html;
+
+import '../database_helper.dart';
 
 class UploadDataPage extends StatefulWidget {
   @override
@@ -45,11 +47,38 @@ class _UploadDataPageState extends State<UploadDataPage> {
     }
   }
 
+  bool _validateArcFlash(ArcFlashData data) {
+    return true;
+  }
+
   void _processCSVData(List<List<dynamic>> csvData) async {
     final archive = Archive();
+    List<dynamic> header = [];
+    bool headerSet = false;
     for (var row in csvData) {
-      // Assume the first column contains the ID
-      String id = row[0].toString();
+      if (!headerSet) {
+        header = row;
+        headerSet = true;
+        continue;
+      }
+      ArcFlashData data = ArcFlashData(
+        id: row[0].toString().toLowerCase(),
+        dangerType: row[1].toString(),
+        workingDistance: row[2].toString(),
+        incidentEnergy: row[3].toString(),
+        arcFlashBoundary: row[4].toString(),
+        shockHazard: row[5].toString(),
+        limitedApproach: row[6].toString(),
+        restrictedApproach: row[7].toString(),
+        gloveClass: row[8].toString(),
+        equipment: row[9].toString(),
+        date: row[10].toString(),
+        standard: row[11].toString(),
+        file: row[12].toString(),
+      );
+      if (!_validateArcFlash(data)) {
+        continue;
+      }
 
       final pdf = pw.Document();
 
@@ -75,7 +104,9 @@ class _UploadDataPageState extends State<UploadDataPage> {
 
       // Save the PDF to a byte array
       final pdfBytes = await pdf.save();
-      final fileName = 'QR_Code_$id.pdf';
+      final fileName = 'QR_Code_${data.id}.pdf';
+
+      addArcFlashAnalysisToFirestore(data);
 
       // Add the PDF to the zip archive
       archive.addFile(ArchiveFile(fileName, pdfBytes.length, pdfBytes));
@@ -87,13 +118,14 @@ class _UploadDataPageState extends State<UploadDataPage> {
     if (kIsWeb) {
       // For web
       final zipBytes = ZipEncoder().encode(archiveDoc);
-      if(zipBytes!=null){
-        final base64Zip = base64.encode(zipBytes!);
+      if (zipBytes != null) {
+        final base64Zip = base64.encode(zipBytes);
         final href =
             'data:application/octet-stream;charset=utf-16le;base64,$base64Zip';
         final anchor = html.AnchorElement(href: href)
           ..setAttribute('download', 'archive.zip')
           ..click();
+        html.Url.revokeObjectUrl(href);
         print('Zip archive downloaded');
       }
     }

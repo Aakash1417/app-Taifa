@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_taifa_flutter/objects/ArcFlashData.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -192,5 +193,29 @@ Future<void> softDeletePinFirebase(String pinName) async {
         .update({'isActive': false});
   } catch (e) {
     print("error deleting pin: $pinName");
+  }
+}
+
+bool addArcFlashAnalysisToFirestore(ArcFlashData data) {
+  try {
+    FirebaseFirestore.instance.collection("arcFlash").doc(data.id).set({
+      'dangerType': data.dangerType,
+      'workingDistance': data.workingDistance,
+      'incidentEnergy': data.incidentEnergy,
+      'arcFlashBoundary': data.arcFlashBoundary,
+      'shockHazard': data.shockHazard,
+      'limitedApproach': data.limitedApproach,
+      'restrictedApproach': data.restrictedApproach,
+      'gloveClass': data.gloveClass,
+      'equipment': data.equipment,
+      'date': data.date,
+      'standard': data.standard,
+      'file': data.file,
+      'createdBy': AppUser.thisUser.email,
+      'lastUpdated': DateTime.now().toIso8601String(),
+    });
+    return true;
+  } catch (e) {
+    return false;
   }
 }
