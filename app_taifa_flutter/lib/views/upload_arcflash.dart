@@ -20,6 +20,15 @@ class UploadDataPage extends StatefulWidget {
 }
 
 class _UploadDataPageState extends State<UploadDataPage> {
+  final TextEditingController _searchController = TextEditingController();
+  List<ArcFlashData> _arcflashs = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchAllArcflashs();
+  }
+
   void _pickAndProcessCSV() async {
     // Use file_picker to let the user select a CSV file
     FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -80,27 +89,7 @@ class _UploadDataPageState extends State<UploadDataPage> {
         continue;
       }
 
-      final pdf = pw.Document();
-
-      // Add a page with the QR code in the middle
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          build: (pw.Context context) {
-            return pw.Center(
-              child: pw.Container(
-                width: 200,
-                height: 200,
-                child: pw.BarcodeWidget(
-                    data: "www.google.com",
-                    barcode: pw.Barcode.qrCode(),
-                    width: 100,
-                    height: 100),
-              ),
-            );
-          },
-        ),
-      );
+      final pdf = generatePdf(data);
 
       // Save the PDF to a byte array
       final pdfBytes = await pdf.save();
@@ -112,6 +101,31 @@ class _UploadDataPageState extends State<UploadDataPage> {
       archive.addFile(ArchiveFile(fileName, pdfBytes.length, pdfBytes));
     }
     await _saveZipFile(archive, 'sdasd.zip');
+  }
+
+  pw.Document generatePdf(ArcFlashData data) {
+    final pdf = pw.Document();
+
+    // Add a page with the QR code in the middle
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Center(
+            child: pw.Container(
+              width: 200,
+              height: 200,
+              child: pw.BarcodeWidget(
+                  data: "www.google.com",
+                  barcode: pw.Barcode.qrCode(),
+                  width: 100,
+                  height: 100),
+            ),
+          );
+        },
+      ),
+    );
+    return pdf;
   }
 
   Future<void> _saveZipFile(Archive archiveDoc, String fileName) async {
@@ -150,12 +164,73 @@ class _UploadDataPageState extends State<UploadDataPage> {
     // }
   }
 
+  Future<void> fetchAllArcflashs() async {
+    var fetchedData = await getArcFlashStudies();
+    setState(() {
+      _arcflashs = fetchedData!;
+    });
+  }
+
+  void _onSearch() {
+    print("Search clicked with query: ${_searchController.text}");
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ElevatedButton(
-        onPressed: _pickAndProcessCSV,
-        child: const Text('Upload CSV'),
+    return Scaffold(
+      body: Column(
+        children: [
+          ElevatedButton(
+            onPressed: _pickAndProcessCSV,
+            child: const Text('Upload CSV'),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: const InputDecoration(
+                      labelText: "Search",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: _onSearch,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _arcflashs.length,
+              itemBuilder: (context, index) {
+                var arcflash = _arcflashs[index];
+                return ListTile(
+                  title: Text(arcflash.id ?? 'No equipment'),
+                  subtitle: Text('Date: ${arcflash.date}'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.download),
+                    onPressed: () async {
+                      final archive = Archive();
+                      final pdf = generatePdf(arcflash);
+                      final pdfBytes = await pdf.save();
+                      final fileName = 'QR_Code_${arcflash.id}.pdf';
+                      addArcFlashAnalysisToFirestore(arcflash);
+                      archive.addFile(
+                          ArchiveFile(fileName, pdfBytes.length, pdfBytes));
+                      await _saveZipFile(archive, 'sdasd.zip');
+                    },
+                  ),
+                  isThreeLine: true,
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

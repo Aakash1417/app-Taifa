@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ArcFlashData {
   String id;
   String dangerType;
@@ -28,4 +30,23 @@ class ArcFlashData {
     required this.standard,
     required this.file,
   });
+
+  factory ArcFlashData.fromFirestore(DocumentSnapshot doc) {
+    Map data = doc.data() as Map<String, dynamic>;
+    return ArcFlashData(
+      id: doc.id,
+      dangerType: data['dangerType'],
+      workingDistance: data['workingDistance'],
+      incidentEnergy: data['incidentEnergy'],
+      arcFlashBoundary: data['arcFlashBoundary'],
+      shockHazard: data['shockHazard'],
+      limitedApproach: data['limitedApproach'],
+      restrictedApproach: data['restrictedApproach'],
+      gloveClass: data['gloveClass'],
+      equipment: data['equipment'],
+      date: data['date'],
+      standard: data['standard'],
+      file: data['file'],
+    );
+  }
 }

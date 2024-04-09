@@ -219,3 +219,25 @@ bool addArcFlashAnalysisToFirestore(ArcFlashData data) {
     return false;
   }
 }
+
+// TODO: make this paginated
+Future<List<ArcFlashData>?> getArcFlashStudies() async {
+  List<ArcFlashData> allArcFlashData = [];
+  try {
+    await FirebaseFirestore.instance
+        .collection("arcFlash")
+        .limit(10)
+        .get()
+        .then((QuerySnapshot querySnapshot) {
+      querySnapshot.docs.forEach((DocumentSnapshot doc) {
+        if (doc.exists) {
+          allArcFlashData.add(ArcFlashData.fromFirestore(doc));
+        } else {
+          return;
+        }
+      });
+    });
+    return allArcFlashData;
+  } catch (e) {}
+  return null;
+}
