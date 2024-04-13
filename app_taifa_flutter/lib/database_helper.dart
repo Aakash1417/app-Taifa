@@ -221,23 +221,54 @@ bool addArcFlashAnalysisToFirestore(ArcFlashData data) {
 }
 
 // TODO: make this paginated
-Future<List<ArcFlashData>?> getArcFlashStudies() async {
+Future<List<ArcFlashData>?> getArcFlashStudies(
+    int pageNumber, int pageSize) async {
   List<ArcFlashData> allArcFlashData = [];
   try {
-    await FirebaseFirestore.instance
-        .collection("arcFlash")
-        .limit(10)
-        .get()
-        .then((QuerySnapshot querySnapshot) {
-      querySnapshot.docs.forEach((DocumentSnapshot doc) {
-        if (doc.exists) {
-          allArcFlashData.add(ArcFlashData.fromFirestore(doc));
-        } else {
-          return;
-        }
-      });
-    });
+    Query query =
+        FirebaseFirestore.instance.collection("arcFlash").limit(pageSize);
+
+    if (pageNumber > 1) {
+      // Fetch the last document of the previous page to use as the starting point for the next page
+      DocumentSnapshot<Object?>? lastDocument =
+          await getLastDocumentOfPage(pageNumber, pageSize);
+      if (lastDocument != null) {
+        query = query.startAfterDocument(lastDocument);
+      }
+    }
+
+    QuerySnapshot querySnapshot = await query.get();
+
+    for (var doc in querySnapshot.docs) {
+      if (doc.exists) {
+        allArcFlashData.add(ArcFlashData.fromFirestore(doc));
+      } else {
+        return null;
+      }
+    }
+
     return allArcFlashData;
-  } catch (e) {}
+  } catch (e) {
+    print(e); // It's a good idea to handle the exception more gracefully
+    return null;
+  }
+}
+
+Future<DocumentSnapshot?> getLastDocumentOfPage(
+    int pageNumber, int pageSize) async {
+  try {
+    int skipCount = (pageNumber - 1) * pageSize;
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection("arcFlash")
+        .orderBy(FieldPath.documentId)
+        .limit(skipCount)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      return snapshot.docs.last;
+    }
+  } catch (e) {
+    print(e);
+  }
   return null;
 }

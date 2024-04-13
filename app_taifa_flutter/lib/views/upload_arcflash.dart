@@ -22,11 +22,14 @@ class UploadDataPage extends StatefulWidget {
 class _UploadDataPageState extends State<UploadDataPage> {
   final TextEditingController _searchController = TextEditingController();
   List<ArcFlashData> _arcflashs = [];
+  int _currentPage = 1;
+  int _totalPages = 0;
+  static const int pageSize = 3;
 
   @override
   void initState() {
     super.initState();
-    fetchAllArcflashs();
+    fetchAllArcFlashs();
   }
 
   void _pickAndProcessCSV() async {
@@ -164,15 +167,19 @@ class _UploadDataPageState extends State<UploadDataPage> {
     // }
   }
 
-  Future<void> fetchAllArcflashs() async {
-    var fetchedData = await getArcFlashStudies();
-    setState(() {
-      _arcflashs = fetchedData!;
-    });
+  Future<void> fetchAllArcFlashs() async {
+    String? searchTerm =
+        _searchController.text.isEmpty ? null : _searchController.text;
+    var fetchedData = await getArcFlashStudies(_currentPage, pageSize);
+    if (fetchedData != null && fetchedData.isNotEmpty) {
+      setState(() {
+        _arcflashs = fetchedData;
+      });
+    }
   }
 
   void _onSearch() {
-    print("Search clicked with query: ${_searchController.text}");
+    fetchAllArcFlashs();
   }
 
   @override
@@ -229,6 +236,32 @@ class _UploadDataPageState extends State<UploadDataPage> {
                 );
               },
             ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: _currentPage > 1
+                    ? () {
+                        setState(() {
+                          _currentPage--;
+                          fetchAllArcFlashs();
+                        });
+                      }
+                    : null,
+              ),
+              Text('Page $_currentPage'),
+              IconButton(
+                icon: const Icon(Icons.arrow_forward),
+                onPressed: () {
+                  setState(() {
+                    _currentPage++;
+                    fetchAllArcFlashs();
+                  });
+                },
+              ),
+            ],
           ),
         ],
       ),
