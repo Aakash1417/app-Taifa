@@ -24,7 +24,7 @@ class _UploadDataPageState extends State<UploadDataPage> {
   List<ArcFlashData> _arcflashs = [];
   int _currentPage = 1;
   int _totalPages = 0;
-  static const int pageSize = 3;
+  static const int pageSize = 12;
 
   @override
   void initState() {
