@@ -1,1 +1,21 @@
-run 'flutter pub get'
+flutter version 3.16.0
+
+
+flutter clean
+flutter pub get
+flutter upgrade
+
+dart fix --dry-run
+dart fix --apply
+
+
+npm install -g firebase-tools
+
+in cmd prompt
+	firebase login
+	firebase init
+	flutter build web
+	firebase deploy
+
+https://app-taifa.firebaseapp.com/
+
