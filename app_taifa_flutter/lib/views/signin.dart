@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -15,9 +17,19 @@ class SignInScreen extends StatefulWidget {
 
 class SignInScreenState extends State<SignInScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn googleSignIn = GoogleSignIn(
-      clientId:
-          "95581424221-knrsei9i3lkm0ahpvd3rkqijsp1s67ad.apps.googleusercontent.com");
+  late final GoogleSignIn googleSignIn;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Platform.isIOS) {
+      googleSignIn = GoogleSignIn(
+          clientId:
+              "95581424221-knrsei9i3lkm0ahpvd3rkqijsp1s67ad.apps.googleusercontent.com");
+    } else {
+      googleSignIn = GoogleSignIn();
+    }
+  }
 
   Future<void> signInWithGoogle() async {
     try {
