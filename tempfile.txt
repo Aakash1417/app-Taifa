@@ -1,5 +1,5 @@
 flutter version 3.16.0
-
+gradle 8.6, agp 8.2.1
 
 flutter clean
 flutter pub get
@@ -19,3 +19,4 @@ in cmd prompt
 
 https://app-taifa.firebaseapp.com/
 
+android apk output folder: app_taifa_flutter\build\app\outputs\apk\release
