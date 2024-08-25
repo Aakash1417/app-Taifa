@@ -38,21 +38,21 @@ class _HomePageState extends State<HomePage> {
         Navigator.push(
             context, MaterialPageRoute(builder: (context) => MapsPage()));
       }, 'Maps'),
-      function('assets/images/equipment_logo.png', () {
-        // Navigator push for CalibratorPage
-      }, 'Calibrator'),
-      function('assets/images/QR.png', () {}, 'QR Code'),
+      // function('assets/images/equipment_logo.png', () {
+      //   // Navigator push for CalibratorPage
+      // }, 'Calibrator'),
+      // function('assets/images/QR.png', () {}, 'QR Code'),
       function('assets/images/feedbackIcon.png', () async {
         final Uri feedbackFormUrl = Uri.parse('https://flutter.dev');
         if (!await launchUrl(feedbackFormUrl)) {
           throw Exception('Could not launch $feedbackFormUrl');
         }
       }, 'Report Bug'),
-      if (AppUser.role == Roles.admin.name)
-        function('assets/images/admin_icon.png', () async {
-          Navigator.push(
-              context, MaterialPageRoute(builder: (context) => AdminPage()));
-        }, 'Admin'),
+      // if (AppUser.role == Roles.admin.name)
+      //   function('assets/images/admin_icon.png', () async {
+      //     Navigator.push(
+      //         context, MaterialPageRoute(builder: (context) => AdminPage()));
+      //   }, 'Admin'),
     ];
   }
 
