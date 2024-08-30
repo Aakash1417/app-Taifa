@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
-import 'package:app_taifa_flutter/views/signin.dart';
 import 'package:flutter/material.dart';
 import 'package:fuzzy/fuzzy.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../database_helper.dart';
 import '../objects/Client.dart';
@@ -39,6 +40,7 @@ class _MapsPageState extends State<MapsPage> {
   List<String> suggestionList = [];
   List<String> filteredSuggestions = [];
   bool isSearchActive = false;
+  LatLng? _ios_googlemaps_popup = null;
 
   @override
   void initState() {
@@ -152,6 +154,34 @@ class _MapsPageState extends State<MapsPage> {
               myLocationEnabled: true,
               myLocationButtonEnabled: true,
               padding: EdgeInsets.only(top: _myLocationPadding),
+            ),
+          ),
+          Visibility(
+            visible: _ios_googlemaps_popup != null,
+            child: Positioned(
+              bottom: 20,
+              right: 55,
+              child: Container(
+                width: 50, // Set the width and height to create a circle
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white, // White background for the circle
+                  shape: BoxShape.circle, // Circular shape
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2), // Subtle shadow
+                      spreadRadius: 2,
+                      blurRadius: 5,
+                      offset: const Offset(0, 3), // Shadow position
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.pin_drop, // The pin icon
+                  color: Colors.red, // Pin icon color
+                  size: 30, // Size of the icon
+                ),
+              ),
             ),
           ),
           Visibility(
@@ -451,9 +481,20 @@ class _MapsPageState extends State<MapsPage> {
     );
   }
 
+  Future<void> openInGoogleMaps() async {
+    try {
+      final Uri url = Uri.parse(
+          'https://www.google.com/maps/search/?api=1&query=${_ios_googlemaps_popup?.latitude},${_ios_googlemaps_popup?.longitude}');
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url);
+      }
+    } catch (_) {}
+  }
+
   void _onMapTap(LatLng latLng) {
     setState(() {
       isSearchActive = false;
+      _ios_googlemaps_popup = null;
     });
     if (_addPinState) {
       setState(() {
@@ -744,16 +785,22 @@ class _MapsPageState extends State<MapsPage> {
 
             _markers.add(
               Marker(
-                markerId: MarkerId(name),
-                position: LatLng(latitude, longitude),
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                    _colorToHue(Color(colorValue))),
-                infoWindow: InfoWindow(
-                  title: name,
-                  snippet: 'Client: $client',
-                  onTap: () => _showMarkerContextMenu(pinData),
-                ),
-              ),
+                  markerId: MarkerId(name),
+                  position: LatLng(latitude, longitude),
+                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                      _colorToHue(Color(colorValue))),
+                  infoWindow: InfoWindow(
+                    title: name,
+                    snippet: 'Client: $client',
+                    onTap: () => _showMarkerContextMenu(pinData),
+                  ),
+                  onTap: () {
+                    if (Platform.isIOS) {
+                      setState(() {
+                        _ios_googlemaps_popup = LatLng(latitude, longitude);
+                      });
+                    }
+                  }),
             );
           }
         }
