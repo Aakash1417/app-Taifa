@@ -160,7 +160,7 @@ class _MapsPageState extends State<MapsPage> {
               visible: _ios_googlemaps_popup != null,
               child: Positioned(
                 bottom: 20,
-                right: 55,
+                right: 70,
                 child: GestureDetector(
                   onTap: openInGoogleMaps,
                   child: Container(
@@ -486,7 +486,7 @@ class _MapsPageState extends State<MapsPage> {
   Future<void> openInGoogleMaps() async {
     try {
       final Uri url = Uri.parse(
-          'https://www.google.com/maps/search/?api=1&query=${_ios_googlemaps_popup?.latitude},${_ios_googlemaps_popup?.longitude}');
+          'comgooglemaps://?center=${_ios_googlemaps_popup?.latitude}, ${_ios_googlemaps_popup?.longitude}&q=${_ios_googlemaps_popup?.latitude}, ${_ios_googlemaps_popup?.longitude}');
       if (await canLaunchUrl(url)) {
         await launchUrl(url);
       }
