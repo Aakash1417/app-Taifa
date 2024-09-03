@@ -157,33 +157,35 @@ class _MapsPageState extends State<MapsPage> {
             ),
           ),
           Visibility(
-            visible: _ios_googlemaps_popup != null,
-            child: Positioned(
-              bottom: 20,
-              right: 55,
-              child: Container(
-                width: 50, // Set the width and height to create a circle
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.white, // White background for the circle
-                  shape: BoxShape.circle, // Circular shape
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2), // Subtle shadow
-                      spreadRadius: 2,
-                      blurRadius: 5,
-                      offset: const Offset(0, 3), // Shadow position
+              visible: _ios_googlemaps_popup != null,
+              child: Positioned(
+                bottom: 20,
+                right: 55,
+                child: GestureDetector(
+                  onTap: openInGoogleMaps,
+                  child: Container(
+                    width: 50, // Set the width and height to create a circle
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.white, // White background for the circle
+                      shape: BoxShape.circle, // Circular shape
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2), // Subtle shadow
+                          spreadRadius: 2,
+                          blurRadius: 5,
+                          offset: const Offset(0, 3), // Shadow position
+                        ),
+                      ],
                     ),
-                  ],
+                    child: const Icon(
+                      Icons.pin_drop, // The pin icon
+                      color: Colors.red, // Pin icon color
+                      size: 30, // Size of the icon
+                    ),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.pin_drop, // The pin icon
-                  color: Colors.red, // Pin icon color
-                  size: 30, // Size of the icon
-                ),
-              ),
-            ),
-          ),
+              )),
           Visibility(
             visible: isSearchActive && filteredSuggestions.isNotEmpty,
             child: Positioned(
