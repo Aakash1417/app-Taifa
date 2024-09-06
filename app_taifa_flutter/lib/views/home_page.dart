@@ -43,7 +43,7 @@ class _HomePageState extends State<HomePage> {
       // }, 'Calibrator'),
       // function('assets/images/QR.png', () {}, 'QR Code'),
       function('assets/images/feedbackIcon.png', () async {
-        final Uri feedbackFormUrl = Uri.parse('https://flutter.dev');
+        final Uri feedbackFormUrl = Uri.parse('https://forms.gle/sEuFsCYAqMpMyXQRA');
         if (!await launchUrl(feedbackFormUrl)) {
           throw Exception('Could not launch $feedbackFormUrl');
         }
